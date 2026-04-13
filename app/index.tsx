@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function App() {
   const handleExplore = () => {
@@ -19,27 +19,27 @@ export default function App() {
         <Text style={styles.welcomeText}>Bienvenue</Text>
         <Text style={styles.title}>Chez</Text>
         <View style={styles.separator} />
-        <Text style={styles.arabic}>
-          ديوان الخدمات الجامعية للوسط
-        </Text>
-        
-        <TouchableOpacity 
+        <Text style={styles.arabic}>ديوان الخدمات الجامعية للوسط</Text>
+
+        <TouchableOpacity
           style={styles.mainButton}
           onPress={handleExplore}
           activeOpacity={0.9}
         >
-          <Text style={styles.mainButtonText}>Commencer l&apos;exploration</Text>
+          <Text style={styles.mainButtonText}>
+            Commencer l&apos;exploration
+          </Text>
           <Text style={styles.mainButtonArrow}>→</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.secondaryButton}
           onPress={handleServices}
           activeOpacity={0.7}
         >
           <Text style={styles.secondaryButtonText}>Découvrir nos services</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.decorationLine} />
       </View>
     </View>
