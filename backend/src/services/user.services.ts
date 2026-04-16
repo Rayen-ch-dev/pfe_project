@@ -1,24 +1,60 @@
-import { pool } from "../config/db";
+import { prisma } from "../lib/prisma";
 
+/**
+ * CREATE USER
+ */
 export const createUserService = async (
   firstName: string,
   lastName: string,
   email: string
 ) => {
-  const result = await pool.query(
-    `INSERT INTO users (first_name, last_name, email)
-     VALUES ($1, $2, $3)
-     RETURNING *`,
-    [firstName, lastName, email]
-  );
-
-  return result.rows[0];
+  return prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+    },
+  });
 };
-export const getUserByIdService = async (id: string) => {
-  const result = await pool.query(
-    "SELECT id, first_name, last_name, email FROM users WHERE id = $1",
-    [id]
-  );
 
-  return result.rows[0];
+/**
+ * GET USER BY ID
+ */
+export const getUserByIdService = async (id: string) => {
+  return prisma.user.findUnique({
+    where: { id },
+  });
+};
+
+/**
+ * GET ALL USERS
+ */
+export const getAllUsersService = async () => {
+  return prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+/**
+ * UPDATE USER
+ */
+export const updateUserService = async (id: string, data: any) => {
+  return prisma.user.update({
+    where: { id },
+    data,
+  });
+};
+
+/**
+ * DELETE USER
+ */
+export const deleteUserService = async (id: string) => {
+  try {
+    await prisma.user.delete({
+      where: { id },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 };
