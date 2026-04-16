@@ -33,7 +33,7 @@ export const login = async (email: string, password: string) => {
 
   if (!ok) throw new Error("Invalid credentials");
 
-  if (user.role === "ETUDIANT" && user.status !== "APPROVED") {
+  if (user.role === "STUDENT" && user.status !== "APPROVED") {
     throw new Error("Account not approved by admin");
   }
 
