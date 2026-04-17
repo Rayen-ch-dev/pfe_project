@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import userRoutes from "./routes/user.routes";
-
 import authRoutes from "./routes/auth.routes";
+import agentRestaurantRoutes from "./routes/agent-restaurant.routes";
 import cookieParser from "cookie-parser";
 const app = express();
 
@@ -17,6 +17,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/agent-restaurant", agentRestaurantRoutes);
 
 
 export default app;

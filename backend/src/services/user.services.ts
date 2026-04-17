@@ -6,13 +6,16 @@ import { prisma } from "../lib/prisma";
 export const createUserService = async (
   firstName: string,
   lastName: string,
-  email: string
+  email: string,
+  password: string
 ) => {
   return prisma.user.create({
     data: {
       firstName,
       lastName,
       email,
+      password,
+      
     },
   });
 };

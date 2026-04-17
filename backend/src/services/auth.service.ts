@@ -33,7 +33,7 @@ export const login = async (email: string, password: string) => {
 
   if (!ok) throw new Error("Invalid credentials");
 
-  if (user.role === "STUDENT" && user.status !== "APPROVED") {
+  if ((user.role === "STUDENT" || user.role === "AGENT_RESTAURANT") && user.status !== "APPROVED") {
     throw new Error("Account not approved by admin");
   }
 
@@ -44,6 +44,30 @@ export const login = async (email: string, password: string) => {
   );
 
   return token;
+};
+
+export const registerAgentRestaurant = async (
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string
+) => {
+  const exist = await prisma.user.findUnique({ where: { email } });
+
+  if (exist) throw new Error("User already exists");
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  return prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+      password: hashed,
+      role: "AGENT_RESTAURANT",
+      status: "APPROVED" // Admin-created agents are approved by default
+    },
+  });
 };
 
 export const registerAdmin = async (

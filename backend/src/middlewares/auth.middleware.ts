@@ -6,7 +6,7 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -27,7 +27,22 @@ export const authMiddleware = (
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
-    );
+    ) as any;
+
+    // Check if user still exists and has approved status
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, role: true, status: true }
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    // Check approval status for non-admin users
+    if (user.role !== "ADMIN" && user.status !== "APPROVED") {
+      return res.status(403).json({ message: "Account not approved by admin" });
+    }
 
     req.user = decoded;
     next();
@@ -35,3 +50,6 @@ export const authMiddleware = (
     res.status(401).json({ message: "Invalid token" });
   }
 };
+
+// Re-export admin middleware for convenience
+export { adminMiddleware } from './admin.middleware';
