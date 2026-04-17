@@ -1,10 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+interface User {
+  id: string;
+  firstName: string;
+  role: string;
+}
+
 interface AuthContextType {
   token: string | null;
+  user: User | null;
   isAuthenticated: boolean;
-  login: (token: string) => Promise<void>;
+  login: (token: string, user: User) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -25,29 +32,39 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadToken = async () => {
+    const loadAuthData = async () => {
       try {
         const storedToken = await AsyncStorage.getItem('token');
-        setToken(storedToken);
+        const storedUser = await AsyncStorage.getItem('user');
+        
+        if (storedToken) {
+          setToken(storedToken);
+          if (storedUser) {
+            setUser(JSON.parse(storedUser));
+          }
+        }
       } catch (error) {
-        console.error('Error loading token:', error);
+        console.error('Error loading auth data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadToken();
+    loadAuthData();
   }, []);
 
-  const login = async (newToken: string) => {
+  const login = async (newToken: string, userData: User) => {
     try {
       await AsyncStorage.setItem('token', newToken);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
+      setUser(userData);
     } catch (error) {
-      console.error('Error saving token:', error);
+      console.error('Error saving auth data:', error);
       throw error;
     }
   };
@@ -55,15 +72,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
       setToken(null);
+      setUser(null);
     } catch (error) {
-      console.error('Error removing token:', error);
+      console.error('Error removing auth data:', error);
       throw error;
     }
   };
 
   const value = {
     token,
+    user,
     isAuthenticated: !!token,
     login,
     logout,

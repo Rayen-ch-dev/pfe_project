@@ -19,8 +19,9 @@ export default function SignInScreen() {
     try {
       const res = await login({ email, password });
       const token = res.data.token;
+      const user = res.data.user;
       
-      await authLogin(token);
+      await authLogin(token, user);
       Alert.alert("Success", "Login successful");
       router.replace("../(tabs)");
     } catch (err: any) {
