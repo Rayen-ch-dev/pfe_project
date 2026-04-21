@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TextInput, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
-import { jwtDecode } from 'jwt-decode';
+import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 
 interface UserProfile {
   id: string;
@@ -17,6 +18,7 @@ export default function Profile() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -37,7 +39,6 @@ export default function Profile() {
         return;
       }
 
-      // Fetch user data from API using the token
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.15:5000'}/api/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -69,31 +70,45 @@ export default function Profile() {
       });
     } catch (error: any) {
       console.error("Failed to load profile:", error);
-      Alert.alert("Error", "Failed to load profile");
+      Alert.alert("Erreur", "Impossible de charger le profil");
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpdateProfile = async () => {
+    setUpdating(true);
     try {
       // TODO: Implement update profile API call
-      Alert.alert("Success", "Profile updated successfully!");
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update local profile data
+      setUserProfile(prev => prev ? {
+        ...prev,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+      } : null);
+      
+      Alert.alert("Succès", "Profil mis à jour avec succès !");
       setEditing(false);
     } catch (error: any) {
       console.error("Failed to update profile:", error);
-      Alert.alert("Error", "Failed to update profile");
+      Alert.alert("Erreur", "Impossible de mettre à jour le profil");
+    } finally {
+      setUpdating(false);
     }
   };
 
   const handleLogout = async () => {
     Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
+      "Déconnexion",
+      "Êtes-vous sûr de vouloir vous déconnecter ?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Annuler", style: "cancel" },
         { 
-          text: "Logout", 
+          text: "Déconnexion", 
           style: "destructive",
           onPress: async () => {
             try {
@@ -101,7 +116,7 @@ export default function Profile() {
               router.replace("/(auth)/SignInScreen");
             } catch (error) {
               console.error("Logout failed:", error);
-              Alert.alert("Error", "Failed to logout");
+              Alert.alert("Erreur", "Échec de la déconnexion");
             }
           }
         }
@@ -109,136 +124,222 @@ export default function Profile() {
     );
   };
 
+  const getRoleLabel = (role: string) => {
+    if (role === "STUDENT") return "Étudiant";
+    if (role === "AGENT_RESTAURANT") return "Agent Restaurant";
+    return "Utilisateur";
+  };
+
+  const getRoleIcon = (role: string) => {
+    if (role === "STUDENT") return "school-outline";
+    if (role === "AGENT_RESTAURANT") return "restaurant-outline";
+    return "person-outline";
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading profile...</Text>
+      <View className="flex-1 bg-blue-50 items-center justify-center">
+        <View className="w-16 h-16 bg-blue-600 rounded-full items-center justify-center mb-4 shadow-lg">
+          <Text className="text-white text-3xl font-bold">📚</Text>
+        </View>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text className="text-gray-600 mt-4 text-base">Chargement du profil...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>My Profile</Text>
+    <ScrollView className="flex-1 bg-gray-50" showsVerticalScrollIndicator={false}>
+      <StatusBar style="dark" />
       
-      <View style={styles.form}>
-        <Text style={styles.label}>First Name</Text>
-        <TextInput
-          style={styles.input}
-          value={editing ? formData.firstName : userProfile?.firstName || ""}
-          onChangeText={(text) => setFormData({ ...formData, firstName: text })}
-          editable={editing}
-        />
-
-        <Text style={styles.label}>Last Name</Text>
-        <TextInput
-          style={styles.input}
-          value={editing ? formData.lastName : userProfile?.lastName || ""}
-          onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-          editable={editing}
-        />
-
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={editing ? formData.email : userProfile?.email || ""}
-          onChangeText={(text) => setFormData({ ...formData, email: text })}
-          editable={editing}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.label}>Role</Text>
-        <Text style={styles.roleText}>{userProfile?.role || "N/A"}</Text>
-
-        <Text style={styles.label}>Member Since</Text>
-        <Text style={styles.dateText}>
-          {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : "N/A"}
-        </Text>
+      {/* Header Section */}
+      <View className="bg-blue-600 pt-12 pb-8 px-6 rounded-b-3xl shadow-lg">
+        <View className="items-center">
+          {/* Avatar */}
+          <View className="w-24 h-24 bg-white rounded-full items-center justify-center mb-4 shadow-lg">
+            <Text className="text-blue-600 text-4xl font-bold">
+              {userProfile?.firstName?.charAt(0)}{userProfile?.lastName?.charAt(0)}
+            </Text>
+          </View>
+          
+          {/* User Name */}
+          <Text className="text-white text-2xl font-bold mb-1">
+            {userProfile?.firstName} {userProfile?.lastName}
+          </Text>
+          
+          {/* Role Badge */}
+          <View className="flex-row items-center bg-blue-500 rounded-full px-4 py-1 mt-2">
+            <Ionicons name={getRoleIcon(userProfile?.role || "")} size={16} color="#FFFFFF" />
+            <Text className="text-white text-sm font-semibold ml-2">
+              {getRoleLabel(userProfile?.role || "")}
+            </Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.buttonContainer}>
-        {editing ? (
-          <>
-            <Button title="Save Changes" onPress={handleUpdateProfile} color="#0A66C2" />
-            <Button 
-              title="Cancel" 
-              onPress={() => {
-                setEditing(false);
-                setFormData({
-                  firstName: userProfile?.firstName || "",
-                  lastName: userProfile?.lastName || "",
-                  email: userProfile?.email || "",
-                });
-              }} 
-              color="#666" 
-            />
-          </>
-        ) : (
-          <Button title="Edit Profile" onPress={() => setEditing(true)} color="#0A66C2" />
-        )}
-        
-        <Button 
-          title="Logout" 
-          onPress={handleLogout} 
-          color="#dc3545" 
-        />
+      {/* Profile Info Section */}
+      <View className="px-6 py-6">
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-gray-800 text-xl font-bold">Informations personnelles</Text>
+          {!editing && (
+            <TouchableOpacity 
+              onPress={() => setEditing(true)}
+              className="flex-row items-center"
+            >
+              <Ionicons name="create-outline" size={20} color="#2563EB" />
+              <Text className="text-blue-600 ml-1 font-semibold">Modifier</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          {/* First Name */}
+          <View className="mb-5">
+            <Text className="text-gray-600 text-sm font-semibold mb-2">Prénom</Text>
+            {editing ? (
+              <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
+                <Ionicons name="person-outline" size={20} color="#9CA3AF" />
+                <TextInput
+                  className="flex-1 py-3 text-gray-800 text-base ml-3"
+                  value={formData.firstName}
+                  onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+                  placeholder="Votre prénom"
+                  placeholderTextColor="#9CA3AF"
+                  editable={!updating}
+                />
+              </View>
+            ) : (
+              <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4 py-3">
+                <Ionicons name="person-outline" size={20} color="#9CA3AF" />
+                <Text className="flex-1 text-gray-800 text-base ml-3">{userProfile?.firstName}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Last Name */}
+          <View className="mb-5">
+            <Text className="text-gray-600 text-sm font-semibold mb-2">Nom</Text>
+            {editing ? (
+              <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
+                <Ionicons name="person-outline" size={20} color="#9CA3AF" />
+                <TextInput
+                  className="flex-1 py-3 text-gray-800 text-base ml-3"
+                  value={formData.lastName}
+                  onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+                  placeholder="Votre nom"
+                  placeholderTextColor="#9CA3AF"
+                  editable={!updating}
+                />
+              </View>
+            ) : (
+              <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4 py-3">
+                <Ionicons name="person-outline" size={20} color="#9CA3AF" />
+                <Text className="flex-1 text-gray-800 text-base ml-3">{userProfile?.lastName}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Email */}
+          <View className="mb-5">
+            <Text className="text-gray-600 text-sm font-semibold mb-2">Email</Text>
+            {editing ? (
+              <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
+                <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
+                <TextInput
+                  className="flex-1 py-3 text-gray-800 text-base ml-3"
+                  value={formData.email}
+                  onChangeText={(text) => setFormData({ ...formData, email: text })}
+                  placeholder="votre@email.com"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!updating}
+                />
+              </View>
+            ) : (
+              <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4 py-3">
+                <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
+                <Text className="flex-1 text-gray-800 text-base ml-3">{userProfile?.email}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Member Since */}
+          <View className="mb-2">
+            <Text className="text-gray-600 text-sm font-semibold mb-2">Membre depuis</Text>
+            <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4 py-3">
+              <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+              <Text className="flex-1 text-gray-800 text-base ml-3">
+                {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('fr-FR') : "N/A"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View className="mt-6 space-y-3">
+          {editing ? (
+            <>
+              <TouchableOpacity
+                onPress={handleUpdateProfile}
+                disabled={updating}
+                className={`bg-blue-600 rounded-xl py-4 shadow-md ${updating ? 'opacity-70' : ''}`}
+                activeOpacity={0.8}
+              >
+                {updating ? (
+                  <View className="flex-row items-center justify-center">
+                    <ActivityIndicator color="white" size="small" />
+                    <Text className="text-white font-bold text-lg ml-2">Mise à jour...</Text>
+                  </View>
+                ) : (
+                  <View className="flex-row items-center justify-center">
+                    <Ionicons name="save-outline" size={24} color="white" />
+                    <Text className="text-white font-bold text-lg ml-2">Enregistrer</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  setEditing(false);
+                  setFormData({
+                    firstName: userProfile?.firstName || "",
+                    lastName: userProfile?.lastName || "",
+                    email: userProfile?.email || "",
+                  });
+                }}
+                className="bg-gray-300 rounded-xl py-4"
+                activeOpacity={0.8}
+              >
+                <View className="flex-row items-center justify-center">
+                  <Ionicons name="close-outline" size={24} color="#666" />
+                  <Text className="text-gray-700 font-bold text-lg ml-2">Annuler</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="bg-red-500 rounded-xl py-4 shadow-md"
+              activeOpacity={0.8}
+            >
+              <View className="flex-row items-center justify-center">
+                <Ionicons name="log-out-outline" size={24} color="white" />
+                <Text className="text-white font-bold text-lg ml-2">Se déconnecter</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+
+     
+
+        {/* Footer */}
+        <View className="mt-8 pb-10">
+          <Text className="text-gray-400 text-xs text-center">
+            © 2024 Portail Scolaire. Tous droits réservés.
+          </Text>
+        </View>
       </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#333',
-  },
-  form: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
-    backgroundColor: '#f9f9f9',
-  },
-  roleText: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: '#0A66C2',
-    fontWeight: '600',
-  },
-  dateText: {
-    fontSize: 14,
-    marginBottom: 20,
-    color: '#666',
-  },
-  buttonContainer: {
-    gap: 10,
-  },
-});

@@ -73,3 +73,9 @@ export const getUserProfile = async (token: string) => {
     throw error;
   }
 };
+
+export default {
+  login,
+  register,
+  getUserProfile
+};

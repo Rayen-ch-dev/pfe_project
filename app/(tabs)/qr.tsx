@@ -71,6 +71,27 @@ export default function QR() {
   const [loading, setLoading] = useState(false);
   const [secureQRValue, setSecureQRValue] = useState<string>("");
 
+  // Route protection - Only students can access this page
+  if (user && user.role !== "STUDENT") {
+    return (
+      <View style={styles.container}>
+        <View style={styles.lockIconContainer}>
+          <Ionicons name="lock-closed" size={32} color="#FFFFFF" />
+        </View>
+        <Text style={styles.errorText}>Accès Restreint</Text>
+        <Text style={styles.errorSubtext}>
+          Cette page est uniquement accessible aux étudiants.
+        </Text>
+        <TouchableOpacity 
+          onPress={() => console.log("Return to home")}
+          style={styles.returnButton}
+        >
+          <Text style={styles.returnButtonText}>Retour à l'accueil</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   // STUDENT VIEW: Show their secure QR code
   if (user?.role === "STUDENT") {
     const getUserIdFromToken = () => {
