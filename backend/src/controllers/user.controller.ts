@@ -10,7 +10,7 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    const user = await createUserService(firstName, lastName, email);
+    const user = await createUserService(firstName, lastName, email, "STUDENT");
 
     res.status(201).json({
       message: "User created successfully",
@@ -86,7 +86,7 @@ export const updateUser = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { firstName, lastName, email } = req.body;
 
-    if (!id) {
+    if (!id || Array.isArray(id)) {
       return res.status(400).json({ message: "User ID required" });
     }
 
@@ -112,7 +112,7 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    if (!id) {
+    if (!id || Array.isArray(id)) {
       return res.status(400).json({ message: "User ID required" });
     }
 
@@ -176,7 +176,13 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
   }
 };
 export const getUserPublicById = async (req: Request, res: Response) => {
-  const user = await getUserByIdService(req.params.ID);
+  const { ID } = req.params;
+  
+  if (!ID || Array.isArray(ID)) {
+    return res.status(400).json({ message: "Invalid user ID" });
+  }
+  
+  const user = await getUserByIdService(ID);
 
   if (!user) return res.status(404).json({ message: "Not found" });
 
@@ -185,4 +191,21 @@ export const getUserPublicById = async (req: Request, res: Response) => {
     firstName: user.firstName,
     lastName: user.lastName,
   });
+};
+
+export const getUserTickets = async (req: Request, res: Response) => {
+  try {
+    // For now, return a mock response since we don't have a tickets table
+    // In a real implementation, you would query a tickets or reservations table
+    const mockTicketData = {
+      remainingTickets: 8,
+      totalTickets: 12,
+      usedTickets: 4,
+    };
+
+    res.json(mockTicketData);
+  } catch (error) {
+    console.error("Error fetching user tickets:", error);
+    res.status(500).json({ error: "Failed to fetch user tickets" });
+  }
 };
