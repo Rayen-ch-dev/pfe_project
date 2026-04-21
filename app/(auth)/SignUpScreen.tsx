@@ -79,9 +79,7 @@ export default function SignUpScreen() {
         <View className="flex-1 justify-center px-6 py-12">
           {/* Logo/Header Section */}
           <View className="items-center mb-8">
-            <View className="w-24 h-24 bg-blue-600 rounded-full items-center justify-center mb-4 shadow-lg">
-              <Text className="text-white text-4xl font-bold">📚</Text>
-            </View>
+          
             <Text className="text-3xl font-bold text-blue-800 mb-2">Inscription</Text>
             <Text className="text-gray-600 text-base">Créez votre compte pour commencer</Text>
           </View>
@@ -96,7 +94,7 @@ export default function SignUpScreen() {
                   <Text className="text-gray-400 text-lg mr-3">👤</Text>
                   <TextInput
                     className="flex-1 py-4 text-gray-800 text-base"
-                    placeholder="Jean"
+                    placeholder="mohamed"
                     placeholderTextColor="#9CA3AF"
                     onChangeText={setFirstName}
                     value={firstName}
@@ -111,7 +109,7 @@ export default function SignUpScreen() {
                   <Text className="text-gray-400 text-lg mr-3">👤</Text>
                   <TextInput
                     className="flex-1 py-4 text-gray-800 text-base"
-                    placeholder="Dupont"
+                    placeholder="Ben Amor"
                     placeholderTextColor="#9CA3AF"
                     onChangeText={setLastName}
                     value={lastName}

@@ -73,9 +73,7 @@ export default function SignInScreen() {
         <View className="flex-1 justify-center px-6 py-12">
           {/* Logo/Header Section */}
           <View className="items-center mb-12">
-            <View className="w-24 h-24 bg-blue-600 rounded-full items-center justify-center mb-4 shadow-lg">
-              <Text className="text-white text-4xl font-bold">📚</Text>
-            </View>
+       
             <Text className="text-3xl font-bold text-blue-800 mb-2">Portail Scolaire</Text>
             <Text className="text-gray-600 text-base">Connectez-vous pour continuer à apprendre</Text>
           </View>
