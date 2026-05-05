@@ -1,8 +1,4 @@
-import UserScanner from './components/QrScanner'
+import App from './router'
 import './App.css'
-
-function App() {
-  return <UserScanner/>
-}
 
 export default App
