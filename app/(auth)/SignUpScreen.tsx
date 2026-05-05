@@ -8,11 +8,14 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Image,
+  Modal
 } from "react-native";
 import { useRouter } from "expo-router";
 import { register } from "../api/auth";
 import { StatusBar } from "expo-status-bar";
+import * as ImagePicker from "expo-image-picker";
 
 export default function SignUpScreen() {
   const [firstName, setFirstName] = useState("");
@@ -21,7 +24,73 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [documentImage, setDocumentImage] = useState<string | null>(null);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
   const router = useRouter();
+
+  const pickDocument = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Vous devez autoriser l\'accès à la caméra pour prendre une photo');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setDocumentImage(result.assets[0].uri);
+        setShowDocumentModal(false);
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Erreur', 'Impossible de prendre une photo');
+    }
+  };
+
+  const selectDocumentFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setDocumentImage(result.assets[0].uri);
+        setShowDocumentModal(false);
+      }
+    } catch (error) {
+      console.error('Error selecting document:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner une image');
+    }
+  };
+
+  const convertImageToBase64 = async (imageUri: string): Promise<string> => {
+    try {
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting image to base64:', error);
+      throw new Error('Impossible de convertir l\'image');
+    }
+  };
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
@@ -39,10 +108,28 @@ export default function SignUpScreen() {
       return;
     }
 
+    if (!documentImage) {
+      Alert.alert("Erreur", "Veuillez télécharger un document d'identification");
+      return;
+    }
+
     setLoading(true);
     try {
-      await register({ firstName, lastName, email, password });
-      Alert.alert("Succès", "Compte créé ! Veuillez vous connecter.");
+      // Convert image to base64
+      const base64Image = await convertImageToBase64(documentImage);
+      
+      await register({ 
+        firstName, 
+        lastName, 
+        email, 
+        password, 
+        documentImage: base64Image 
+      });
+      
+      Alert.alert(
+        "Succès", 
+        "Compte créé avec succès ! Votre compte est en attente d'approbation par l'administrateur. Vous serez notifié une fois approuvé."
+      );
       router.replace("/(auth)/SignInScreen");
     } catch (error: any) {
       console.error("Registration failed:", error);
@@ -137,6 +224,7 @@ export default function SignUpScreen() {
               </View>
             </View>
 
+
             {/* Password Input */}
             <View className="mb-5">
               <Text className="text-gray-700 font-semibold mb-2 text-sm">Mot de passe</Text>
@@ -169,6 +257,46 @@ export default function SignUpScreen() {
                   editable={!loading}
                 />
               </View>
+            </View>
+
+            {/* Document Upload Section */}
+            <View className="mb-6">
+              <Text className="text-gray-700 font-semibold mb-2 text-sm">Document d'identification</Text>
+              <Text className="text-gray-500 text-xs mb-3">Carte étudiante, carte d'identité ou certificat d'immatriculation</Text>
+              
+              <TouchableOpacity
+                onPress={() => setShowDocumentModal(true)}
+                disabled={loading}
+                className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-gray-50"
+                activeOpacity={0.7}
+              >
+                {documentImage ? (
+                  <View className="items-center">
+                    <Image 
+                      source={{ uri: documentImage }} 
+                      className="w-24 h-24 rounded-lg mb-2"
+                      resizeMode="cover"
+                    />
+                    <Text className="text-green-600 text-sm font-medium">Document téléchargé ✓</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowDocumentModal(true)}
+                      className="mt-2"
+                    >
+                      <Text className="text-blue-600 text-xs underline">Changer le document</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View className="items-center">
+                    <Text className="text-gray-400 text-4xl mb-2">📷</Text>
+                    <Text className="text-gray-600 text-sm font-medium text-center">
+                      Appuyez pour télécharger un document
+                    </Text>
+                    <Text className="text-gray-400 text-xs text-center mt-1">
+                      Photo ou galerie
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
 
             {/* Sign Up Button */}
@@ -205,11 +333,67 @@ export default function SignUpScreen() {
           {/* Footer */}
           <View className="mt-8">
             <Text className="text-gray-400 text-xs text-center">
-              © 2024 Portail Scolaire. Tous droits réservés.
+              2026 Portail Scolaire. Tous droits réservés.
             </Text>
           </View>
         </View>
       </ScrollView>
+
+      {/* Document Selection Modal */}
+      <Modal
+        visible={showDocumentModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowDocumentModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black bg-opacity-50">
+          <View className="bg-white rounded-t-3xl p-6">
+            <Text className="text-xl font-bold text-gray-800 mb-6 text-center">
+              Sélectionner un document
+            </Text>
+            
+            <View className="space-y-4">
+              <TouchableOpacity
+                onPress={pickDocument}
+                className="bg-blue-600 rounded-xl p-4 flex-row items-center justify-center"
+                activeOpacity={0.8}
+              >
+                <Text className="text-white text-2xl mr-3">📷</Text>
+                <Text className="text-white font-semibold text-base">
+                  Prendre une photo
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={selectDocumentFromGallery}
+                className="bg-green-600 rounded-xl p-4 flex-row items-center justify-center"
+                activeOpacity={0.8}
+              >
+                <Text className="text-white text-2xl mr-3">🖼️</Text>
+                <Text className="text-white font-semibold text-base">
+                  Choisir depuis la galerie
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setShowDocumentModal(false)}
+                className="bg-gray-200 rounded-xl p-4"
+                activeOpacity={0.8}
+              >
+                <Text className="text-gray-800 font-semibold text-center">
+                  Annuler
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="mt-6 p-4 bg-gray-50 rounded-xl">
+              <Text className="text-gray-600 text-xs text-center">
+                Documents acceptés : Carte étudiante, Carte d'identité, Certificat d'immatriculation
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }

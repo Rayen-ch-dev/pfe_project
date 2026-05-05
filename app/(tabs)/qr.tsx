@@ -9,13 +9,30 @@ interface ScanResult {
   id: string;
   firstName: string;
   lastName: string;
-  totalMeals: number;
-  usedMeals: number;
-  remainingMeals: number;
+  todayReservations: Array<{
+    id: string;
+    date: string;
+    mealType: string;
+    status: string;
+    mealDate: string;
+  }>;
+  totalReservationsToday: number;
 }
 
 // Secret key for signature - In production, this should come from secure storage or environment variables
 const SECRET_KEY = "YourSecureSignatureKey123!@#";
+
+// Helper function to get status text
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'CONFIRMED': return 'Confirmée';
+    case 'PENDING': return 'En attente';
+    case 'USED': return 'Utilisée';
+    case 'CANCELLED': return 'Annulée';
+    case 'COMPLETED': return 'Terminée';
+    default: return status;
+  }
+};
 
 // Generate secure QR code with SHA-256 signature
 const generateSecureQRCode = async (userId: string): Promise<string> => {
@@ -36,7 +53,7 @@ const generateSecureQRCode = async (userId: string): Promise<string> => {
 };
 
 // Verify QR code signature
-const verifyQRCode = async (qrData: string): Promise<{ userId: string; isValid: boolean }> => {
+export const verifyQRCode = async (qrData: string): Promise<{ userId: string; isValid: boolean }> => {
   try {
     // Split QR data into userId and signature
     const parts = qrData.split('.');
@@ -70,6 +87,7 @@ export default function QR() {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [secureQRValue, setSecureQRValue] = useState<string>("");
+  const [validatingMeal, setValidatingMeal] = useState(false);
 
   // Route protection - Only students can access this page
   if (user && user.role !== "STUDENT") {
@@ -156,11 +174,11 @@ export default function QR() {
         const { userId } = verification;
         console.log('Verified user ID:', userId);
 
-        console.log('Making API call to:', `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.15:5000"}/api/agent-restaurant/scan/${userId}`);
+        console.log('Making API call to:', `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.18:5000"}/api/agent-restaurant/scan/${userId}`);
         console.log('Token:', token ? 'Present' : 'Missing');
         
         const response = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.15:5000"}/api/agent-restaurant/scan/${userId}`,
+          `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.18:5000"}/api/agent-restaurant/scan/${userId}`,
           {
             method: "GET",
             headers: {
@@ -180,6 +198,10 @@ export default function QR() {
 
         const result = await response.json();
         console.log('Scan result:', result);
+        console.log('Result keys:', Object.keys(result));
+        console.log('Has todayReservations:', 'todayReservations' in result);
+        console.log('todayReservations length:', result.todayReservations?.length);
+        console.log('totalReservationsToday:', result.totalReservationsToday);
         setScanResult(result);
       } catch (error: any) {
         console.error("Scan error:", error);
@@ -192,6 +214,66 @@ export default function QR() {
     const resetScan = () => {
       setScanned(false);
       setScanResult(null);
+    };
+
+    const validateMeal = async (mealType: 'LUNCH' | 'DINNER') => {
+      if (!scanResult || !token) return;
+      
+      setValidatingMeal(true);
+      try {
+        // Find the reservation for this meal type
+        const reservation = scanResult.todayReservations.find(r => r.mealType === mealType);
+        
+        if (!reservation) {
+          Alert.alert("Erreur", `Aucune réservation pour ${mealType === 'LUNCH' ? 'le déjeuner' : 'le dîner'} aujourd'hui`);
+          return;
+        }
+
+        if (reservation.status === 'USED') {
+          Alert.alert("Erreur", `Ce repas (${mealType === 'LUNCH' ? 'déjeuner' : 'dîner'}) a déjà été utilisé`);
+          return;
+        }
+
+        // Call API to validate the meal
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.18:5000"}/api/agent-restaurant/validate-meal`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              studentId: scanResult.id,
+              reservationId: reservation.id,
+              mealType: mealType
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to validate meal: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        Alert.alert(
+          "Succès",
+          `${scanResult.firstName} ${scanResult.lastName}\n${mealType === 'LUNCH' ? 'Déjeuner' : 'Dîner'} validé avec succès!`,
+          [
+            {
+              text: "OK",
+              onPress: () => resetScan()
+            }
+          ]
+        );
+        
+      } catch (error: any) {
+        console.error("Meal validation error:", error);
+        Alert.alert("Erreur", "Échec de la validation du repas.");
+      } finally {
+        setValidatingMeal(false);
+      }
     };
 
     // Permission loading
@@ -259,11 +341,89 @@ export default function QR() {
                 <Text style={styles.info}>
                   {scanResult.firstName} {scanResult.lastName}
                 </Text>
-                <View style={styles.mealsContainer}>
-                  <Text>Total: {scanResult.totalMeals}</Text>
-                  <Text>Utilisés: {scanResult.usedMeals}</Text>
-                  <Text>Restants: {scanResult.remainingMeals}</Text>
-                </View>
+                <Text style={styles.subtitle}>
+                  Réservations du jour: {scanResult.totalReservationsToday}
+                </Text>
+                
+                {/* Debug info */}
+                <Text style={{fontSize: 10, color: 'red'}}>
+                  DEBUG: Keys: {JSON.stringify(Object.keys(scanResult))}
+                </Text>
+                <Text style={{fontSize: 10, color: 'red'}}>
+                  DEBUG: todayReservations: {JSON.stringify(scanResult.todayReservations)}
+                </Text>
+                
+                {scanResult.todayReservations.length > 0 ? (
+                  <View style={styles.summaryContainer}>
+                    <Text style={styles.summaryTitle}>Repas du jour</Text>
+                    
+                    <View style={styles.mealSummaryRow}>
+                      <View style={styles.mealSummaryItem}>
+                        <Text style={styles.mealIcon}>🍽️</Text>
+                        <Text style={styles.mealLabel}>Déjeuner</Text>
+                        <Text style={styles.mealCount}>
+                          {scanResult.todayReservations.filter(r => r.mealType === 'LUNCH').length}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.mealSummaryItem}>
+                        <Text style={styles.mealIcon}>🌙</Text>
+                        <Text style={styles.mealLabel}>Dîner</Text>
+                        <Text style={styles.mealCount}>
+                          {scanResult.todayReservations.filter(r => r.mealType === 'DINNER').length}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.totalMealsText}>
+                      Total: {scanResult.totalReservationsToday} repas
+                    </Text>
+                    
+                    {/* Validation Buttons */}
+                    <View style={styles.validationButtonsContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.validationButton,
+                          scanResult.todayReservations.filter(r => r.mealType === 'LUNCH').length === 0 && styles.validationButtonDisabled,
+                          scanResult.todayReservations.find(r => r.mealType === 'LUNCH' && r.status === 'USED') && styles.validationButtonUsed
+                        ]}
+                        onPress={() => validateMeal('LUNCH')}
+                        disabled={validatingMeal || scanResult.todayReservations.filter(r => r.mealType === 'LUNCH').length === 0}
+                      >
+                        {validatingMeal ? (
+                          <Text style={styles.validationButtonText}>Validation...</Text>
+                        ) : (
+                          <Text style={styles.validationButtonText}>
+                            {scanResult.todayReservations.find(r => r.mealType === 'LUNCH' && r.status === 'USED') ? '✅ Déjeuner' : 'Valider Déjeuner'}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.validationButton,
+                          scanResult.todayReservations.filter(r => r.mealType === 'DINNER').length === 0 && styles.validationButtonDisabled,
+                          scanResult.todayReservations.find(r => r.mealType === 'DINNER' && r.status === 'USED') && styles.validationButtonUsed
+                        ]}
+                        onPress={() => validateMeal('DINNER')}
+                        disabled={validatingMeal || scanResult.todayReservations.filter(r => r.mealType === 'DINNER').length === 0}
+                      >
+                        {validatingMeal ? (
+                          <Text style={styles.validationButtonText}>Validation...</Text>
+                        ) : (
+                          <Text style={styles.validationButtonText}>
+                            {scanResult.todayReservations.find(r => r.mealType === 'DINNER' && r.status === 'USED') ? '✅ Dîner' : 'Valider Dîner'}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.noReservationsText}>
+                    Aucune réservation pour aujourd'hui
+                  </Text>
+                )}
+                
                 <TouchableOpacity style={styles.resetButton} onPress={resetScan}>
                   <Text style={styles.resetButtonText}>Scanner à nouveau</Text>
                 </TouchableOpacity>
@@ -396,5 +556,126 @@ const styles = StyleSheet.create({
   resetButtonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  // Reservations styles
+  reservationsContainer: {
+    marginVertical: 15,
+    paddingHorizontal: 10,
+  },
+  reservationsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+  reservationItem: {
+    backgroundColor: "#f8f9fa",
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#0A66C2",
+  },
+  reservationType: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 2,
+  },
+  reservationStatus: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 2,
+  },
+  reservationTime: {
+    fontSize: 12,
+    color: "#888",
+  },
+  noReservationsText: {
+    textAlign: "center",
+    color: "#666",
+    fontStyle: "italic",
+    marginVertical: 15,
+  },
+  // Summary styles
+  summaryContainer: {
+    marginVertical: 15,
+    paddingHorizontal: 10,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+    textAlign: "center",
+  },
+  mealSummaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginVertical: 10,
+  },
+  mealSummaryItem: {
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#e9ecef",
+    minWidth: 120,
+  },
+  mealIcon: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+  mealLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#495057",
+    marginBottom: 3,
+  },
+  mealCount: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#0A66C2",
+  },
+  totalMealsText: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#6c757d",
+    marginTop: 10,
+    fontStyle: "italic",
+  },
+  // Validation buttons styles
+  validationButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 20,
+    marginHorizontal: 10,
+  },
+  validationButton: {
+    flex: 1,
+    backgroundColor: "#28a745",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginHorizontal: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  validationButtonDisabled: {
+    backgroundColor: "#6c757d",
+    opacity: 0.6,
+  },
+  validationButtonUsed: {
+    backgroundColor: "#17a2b8",
+  },
+  validationButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });

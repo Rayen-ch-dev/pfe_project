@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Using your PC IP address for mobile app connection
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.15:5000";
-// Your PC IP: 192.168.1.15
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.18:5000";
+// Your PC IP: 192.168.1.18
 // This allows mobile app to connect to your backend server
 
 // Configure axios with better error handling

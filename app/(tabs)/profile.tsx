@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { updateUserProfile } from "../api/tickets";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 
@@ -25,7 +26,7 @@ export default function Profile() {
     email: "",
   });
   
-  const { logout, token } = useAuth();
+  const { logout, token, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function Profile() {
         return;
       }
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.15:5000'}/api/users/profile`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.18:5000'}/api/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -79,9 +80,15 @@ export default function Profile() {
   const handleUpdateProfile = async () => {
     setUpdating(true);
     try {
-      // TODO: Implement update profile API call
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!token) {
+        throw new Error('Token manquant');
+      }
+
+      const response = await updateUserProfile(token, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+      });
       
       // Update local profile data
       setUserProfile(prev => prev ? {
@@ -95,7 +102,8 @@ export default function Profile() {
       setEditing(false);
     } catch (error: any) {
       console.error("Failed to update profile:", error);
-      Alert.alert("Erreur", "Impossible de mettre à jour le profil");
+      const errorMessage = error.response?.data?.message || error.message || "Impossible de mettre à jour le profil";
+      Alert.alert("Erreur", errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -181,7 +189,7 @@ export default function Profile() {
       <View className="px-6 py-6">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-gray-800 text-xl font-bold">Informations personnelles</Text>
-          {!editing && (
+          {!editing && user?.role === "AGENT_RESTAURANT" && (
             <TouchableOpacity 
               onPress={() => setEditing(true)}
               className="flex-row items-center"
@@ -336,7 +344,7 @@ export default function Profile() {
         {/* Footer */}
         <View className="mt-8 pb-10">
           <Text className="text-gray-400 text-xs text-center">
-            © 2024 Portail Scolaire. Tous droits réservés.
+            © 2026 Portail Scolaire. Tous droits réservés.
           </Text>
         </View>
       </View>

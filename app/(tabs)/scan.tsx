@@ -5,20 +5,28 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
+import { verifyQRCode } from "./qr";
 
 interface ScanResult {
   id: string;
   firstName: string;
   lastName: string;
+  lunchCount: number;
+  dinnerCount: number;
   totalMeals: number;
-  usedMeals: number;
-  remainingMeals: number;
+  todayReservations?: Array<{
+    id: string;
+    date: string;
+    mealType: string;
+    status: string;
+  }>;
 }
 
 export default function Scan() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [validatingMeal, setValidatingMeal] = useState(false);
   
   const router = useRouter();
   const { user, token } = useAuth();
@@ -78,30 +86,123 @@ export default function Scan() {
     try {
       console.log('QR Code scanned:', data);
       
-      // TODO: Implement actual API call to validate QR code
-      // For now, simulate a successful scan
-      const mockResult: ScanResult = {
-        id: "e8601548-17eb-4df9-981d-10e9c6dc861b",
-        firstName: "Rayen",
-        lastName: "Challouf",
-        totalMeals: 12,
-        usedMeals: 4,
-        remainingMeals: 8
+      // Parse QR code format: userId.signature
+      const parts = data.split('.');
+      if (parts.length !== 2) {
+        console.error('Invalid QR code format:', data);
+        Alert.alert('Erreur', 'Format de code QR invalide');
+        setScanned(false);
+        return;
+      }
+      
+      const [userId, signature] = parts;
+      
+      // Verify QR code signature
+      const verification = await verifyQRCode(data);
+      if (!verification.isValid) {
+        Alert.alert('Erreur', 'Code QR invalide ou signature incorrecte');
+        setScanned(false);
+        return;
+      }
+      
+      // Call API to get student's reservations for today
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.18:5000"}/api/agent-restaurant/scan/${userId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to scan QR: ${response.status}`);
+      }
+
+      const scanData = await response.json();
+      console.log('Scan result:', scanData);
+      
+      // Transform the data to match our interface
+      const result: ScanResult = {
+        id: scanData.id,
+        firstName: scanData.firstName,
+        lastName: scanData.lastName,
+        lunchCount: scanData.todayReservations?.filter((r: any) => r.mealType === 'LUNCH').length || 0,
+        dinnerCount: scanData.todayReservations?.filter((r: any) => r.mealType === 'DINNER').length || 0,
+        totalMeals: scanData.totalReservationsToday || 0,
+        todayReservations: scanData.todayReservations || []
       };
       
-      setScanResult(mockResult);
+      setScanResult(result);
+  
+    } catch (error: any) {
+      console.error("QR scan error:", error);
+      Alert.alert("Erreur", "QR code invalide. Veuillez réessayer.");
+      setScanned(false);
+    }
+  };
+
+  const validateMeal = async (mealType: 'LUNCH' | 'DINNER', student: ScanResult) => {
+    if (!student.todayReservations || student.todayReservations.length === 0) {
+      Alert.alert("Erreur", "Aucune réservation disponible pour aujourd'hui.");
+      return;
+    }
+
+    // Find the reservation for this meal type
+    const reservation = student.todayReservations.find(r => r.mealType === mealType);
+    
+    if (!reservation) {
+      Alert.alert("Erreur", `Aucune réservation de type ${mealType === 'LUNCH' ? 'déjeuner' : 'dîner'} disponible pour aujourd'hui.`);
+      return;
+    }
+
+    if (reservation.status === 'USED') {
+      Alert.alert("Erreur", `Ce ${mealType === 'LUNCH' ? 'déjeuner' : 'dîner'} a déjà été utilisé.`);
+      return;
+    }
+
+    // Check if all meals of this type are already used
+    const availableMeals = student.todayReservations.filter(r => r.mealType === mealType && r.status !== 'USED');
+    if (availableMeals.length === 0) {
+      Alert.alert("Erreur", `Tous les ${mealType === 'LUNCH' ? 'déjeuners' : 'dîners'} ont déjà été utilisés aujourd'hui.`);
+      return;
+    }
+
+    try {
+      // Call API to validate meal
+      console.log(`Validating ${mealType} for student:`, student.id);
+      
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.18:5000"}/api/agent-restaurant/validate-meal`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            studentId: student.id,
+            reservationId: reservation.id,
+            mealType: mealType
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to validate meal: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Meal validation result:', result);
       
       Alert.alert(
-        "Scan Réussi",
-        `${mockResult.firstName} ${mockResult.lastName}\nTickets restants: ${mockResult.remainingMeals}`,
+        "Succès",
+        `${mealType === 'LUNCH' ? 'Déjeuner' : 'Dîner'} validé avec succès!`,
         [
           {
-            text: "Valider le repas",
-            onPress: () => handleValidateMeal(mockResult)
-          },
-          {
-            text: "Scanner à nouveau",
-            style: "cancel",
+            text: "OK",
             onPress: () => {
               setScanned(false);
               setScanResult(null);
@@ -109,10 +210,39 @@ export default function Scan() {
           }
         ]
       );
+      
+      // Update the scan result to reflect validation
+      setScanResult({
+        ...student,
+        todayReservations: student.todayReservations?.map(r => 
+          r.id === reservation.id ? { ...r, status: 'USED' } : r
+        )
+      });
+
+      // Refresh the scan result after validation to show updated counts
+      setTimeout(() => {
+        // Get the updated reservations from current state
+        setScanResult(currentResult => {
+          if (currentResult && currentResult.todayReservations) {
+            const updatedLunchCount = currentResult.todayReservations?.filter((r: any) => r.mealType === 'LUNCH' && r.status !== 'USED').length || 0;
+            const updatedDinnerCount = currentResult.todayReservations?.filter((r: any) => r.mealType === 'DINNER' && r.status !== 'USED').length || 0;
+            const updatedTotalMeals = updatedLunchCount + updatedDinnerCount;
+            
+            return {
+              ...currentResult,
+              lunchCount: updatedLunchCount,
+              dinnerCount: updatedDinnerCount,
+              totalMeals: updatedTotalMeals,
+              todayReservations: currentResult.todayReservations
+            };
+          }
+          return currentResult;
+        });
+      }, 1000);
+      
     } catch (error: any) {
-      console.error("QR scan error:", error);
-      Alert.alert("Erreur", "QR code invalide. Veuillez réessayer.");
-      setScanned(false);
+      console.error("Validation error:", error);
+      Alert.alert("Erreur", "Échec de la validation du repas.");
     }
   };
 
@@ -128,24 +258,10 @@ export default function Scan() {
       // TODO: Implement actual API call to validate meal
       console.log('Validating meal for student:', student.id);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      Alert.alert(
-        "Succès",
-        `Repas validé pour ${student.firstName} ${student.lastName}\nTickets restants: ${student.remainingMeals - 1}`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setScanned(false);
-              setScanResult(null);
-            }
-          }
-        ]
-      );
+      setScanned(false);
+      setScanResult(null);
     } catch (error: any) {
-      console.error("Meal validation error:", error);
+      console.error("Validation error:", error);
       Alert.alert("Erreur", "Échec de la validation du repas.");
     }
   };
@@ -210,18 +326,54 @@ export default function Scan() {
             
             <View className="flex-row justify-between mb-4">
               <View className="bg-gray-50 rounded-lg p-3 flex-1 mr-2">
+                <Text className="text-gray-500 text-xs">🍽️ Déjeuner</Text>
+                <Text className="text-gray-800 font-bold">{scanResult.lunchCount}</Text>
+              </View>
+              <View className="bg-gray-50 rounded-lg p-3 flex-1 mx-1">
+                <Text className="text-gray-500 text-xs">🌙 Dîner</Text>
+                <Text className="text-gray-800 font-bold">{scanResult.dinnerCount}</Text>
+              </View>
+              <View className="bg-gray-50 rounded-lg p-3 flex-1 ml-2">
                 <Text className="text-gray-500 text-xs">Total</Text>
                 <Text className="text-gray-800 font-bold">{scanResult.totalMeals}</Text>
               </View>
-              <View className="bg-gray-50 rounded-lg p-3 flex-1 mx-1">
-                <Text className="text-gray-500 text-xs">Utilisés</Text>
-                <Text className="text-gray-800 font-bold">{scanResult.usedMeals}</Text>
-              </View>
-              <View className="bg-gray-50 rounded-lg p-3 flex-1 ml-2">
-                <Text className="text-gray-500 text-xs">Restants</Text>
-                <Text className="text-green-600 font-bold">{scanResult.remainingMeals}</Text>
-              </View>
             </View>
+            
+            {/* Validation Buttons */}
+            {scanResult.todayReservations && scanResult.todayReservations.length > 0 && (
+              <View className="mt-4">
+                <Text className="text-gray-700 font-semibold mb-3 text-center">
+                  {scanResult.totalMeals === 0 ? 'Tous les repas utilisés' : 'Valider un repas'}
+                </Text>
+                <View className="flex-row space-x-3">
+                  {/* Lunch Validation */}
+                  {scanResult.lunchCount > 0 && (
+                    <TouchableOpacity
+                      onPress={() => validateMeal('LUNCH', scanResult)}
+                      className="bg-orange-500 rounded-lg py-3 px-4 flex-1"
+                      disabled={validatingMeal || scanResult.totalMeals === 0}
+                    >
+                      <Text className="text-white font-bold text-center">
+                        {validatingMeal ? 'Validation...' : 'Valider Déjeuner'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {/* Dinner Validation */}
+                  {scanResult.dinnerCount > 0 && (
+                    <TouchableOpacity
+                      onPress={() => validateMeal('DINNER', scanResult)}
+                      className="bg-green-600 rounded-lg py-3 px-4 flex-1"
+                      disabled={validatingMeal || scanResult.totalMeals === 0}
+                    >
+                      <Text className="text-white font-bold text-center">
+                        {validatingMeal ? 'Validation...' : 'Valider Dîner'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
             
             <TouchableOpacity
               onPress={() => {
