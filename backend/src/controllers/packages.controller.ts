@@ -11,6 +11,7 @@ export const getPackages = async (req: Request, res: Response) => {
           id: true,
           name: true,
           price: true,
+          tickets: true,
         },
         orderBy: {
           price: "asc",
@@ -28,11 +29,13 @@ export const getPackages = async (req: Request, res: Response) => {
           id: "1",
           name: "Package Étudiant",
           price: 2.4, // 12 tickets * 0.2 DT
+          tickets: 12,
         },
         {
           id: "2", 
           name: "Package Premium",
           price: 4.8, // 24 tickets * 0.2 DT
+          tickets: 24,
         }
       ];
     }

@@ -4,23 +4,48 @@ import * as authService from "../services/auth.service";
 // REGISTER
 export const register = async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, role, documentImage } = req.body;
 
-    const user = await authService.register(
-      firstName,
-      lastName,
-      email,
-      password
-    );
+    // Default role to STUDENT if not provided (mobile app registration)
+    const userRole = role || "STUDENT";
 
+    // Validate input
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    let user;
+
+    // Handle different roles
+    if (userRole === "STUDENT") {
+      // For students, document is required
+      if (!documentImage) {
+        return res.status(400).json({ message: "Document d'identification requis pour les étudiants" });
+      }
+      user = await authService.registerStudent(firstName, lastName, email, password, documentImage);
+    } else if (userRole === "AGENT_RESTAURANT") {
+      // For agents, document is not required, they can register directly
+      user = await authService.registerAgentRestaurant(firstName, lastName, email, password);
+    } else {
+      return res.status(400).json({ message: "Invalid role. Must be STUDENT or AGENT_RESTAURANT" });
+    }
+    
     res.status(201).json({
-      message: "User created successfully",
-      user,
+      message: userRole === "STUDENT" 
+        ? "User registered successfully. Your account is pending approval."
+        : "Agent restaurant created successfully and is ready to use.",
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        status: user.status
+      }
     });
   } catch (error: any) {
-    res.status(500).json({
-      message: error.message,
-    });
+    console.error("Registration error:", error);
+    res.status(400).json({ message: error.message });
   }
 };
 

@@ -2,10 +2,9 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
-export const getUserRealTickets = async (req: Request, res: Response) => {
+export const getUserRealTickets = async (req: AuthRequest, res: Response) => {
   try {
-    // For testing, use a hardcoded user ID
-    const userId = "e8601548-17eb-4df9-981d-10e9c6dc861b"; // Your user ID from the token
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
@@ -26,7 +25,7 @@ export const getUserRealTickets = async (req: Request, res: Response) => {
     let totalTickets = 0;
     payments.forEach(payment => {
       // Assume 1 DT = 5 tickets (0.2 DT per ticket)
-      totalTickets += Math.floor(payment.amount / 0.2);
+      totalTickets += Math.round(payment.amount / 0.2);
     });
 
     // Get used tickets from reservations

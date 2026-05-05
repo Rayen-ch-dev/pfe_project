@@ -1,0 +1,1 @@
+{"version":3,"file":"payments.routes.js","sourceRoot":"","sources":["../../src/routes/payments.routes.ts"],"names":[],"mappings":";;AAAA,qCAAiC;AACjC,4EAA4F;AAC5F,oEAAuE;AAEvE,MAAM,MAAM,GAAG,IAAA,gBAAM,GAAE,CAAC;AAExB;;GAEG;AACH,MAAM,CAAC,IAAI,CAAC,WAAW,EAAE,uCAAqB,EAAE,qCAAe,CAAC,CAAC;AACjE,MAAM,CAAC,IAAI,CAAC,SAAS,EAAE,uCAAqB,EAAE,2CAAqB,CAAC,CAAC;AAErE,kBAAe,MAAM,CAAC"}

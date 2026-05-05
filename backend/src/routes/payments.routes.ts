@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { purchasePackage, purchaseCustomTickets } from "../controllers/payments.controller";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { paymentAuthMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
 /**
- * AUTH USER - Purchase operations
+ * AUTH USER - Purchase operations (allows pending students)
  */
-router.post("/purchase", authMiddleware, purchasePackage);
-router.post("/custom", authMiddleware, purchaseCustomTickets);
+router.post("/purchase", paymentAuthMiddleware, purchasePackage);
+router.post("/custom", paymentAuthMiddleware, purchaseCustomTickets);
 
 export default router;

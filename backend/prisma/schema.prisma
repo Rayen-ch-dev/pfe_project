@@ -17,6 +17,8 @@ model User {
   role      Role @default(STUDENT)
   status    UserStatus @default(PENDING)
 
+  documentImage String?
+
   package   Package? @relation(fields: [packageId], references: [id])
   packageId String?
 
@@ -41,6 +43,7 @@ model Package {
   id        String @id @default(uuid())
   name      String
   price     Float
+  tickets   Int
 
   users     User[]
 }
@@ -65,10 +68,14 @@ model Reservation {
   mealId    String
 
   date      DateTime
+  createdAt DateTime @default(now())
 
   status    ReservationStatus @default(PENDING)
 
   qrCode    String?
+
+  usedAt    DateTime?
+  validatedBy String?
 }
 enum ReservationStatus {
   PENDING
@@ -90,4 +97,5 @@ model Payment {
 enum PaymentStatus {
   PENDING
   PAID
+  CANCELLED
 }

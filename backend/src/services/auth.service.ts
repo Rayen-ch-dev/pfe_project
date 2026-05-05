@@ -24,6 +24,32 @@ export const register = async (
   });
 };
 
+export const registerStudent = async (
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
+  documentImage: string
+) => {
+  const exist = await prisma.user.findUnique({ where: { email } });
+
+  if (exist) throw new Error("User already exists");
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  return prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+      password: hashed,
+      role: "STUDENT",
+      status: "PENDING", // Students need approval
+      documentImage: documentImage // Store document image URL
+    },
+  });
+};
+
 export const login = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
 
@@ -89,7 +115,7 @@ export const registerAdmin = async (
       email,
       password: hashed,
       role: "ADMIN",
-      status: undefined
+      status: "APPROVED"
     },
   });
 };

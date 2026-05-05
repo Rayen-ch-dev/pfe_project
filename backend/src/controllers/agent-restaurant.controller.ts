@@ -11,12 +11,15 @@ export const scanStudentQR = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // Find the student by ID with their reservations and payments
+    // Find the student by ID with their reservations and meals
     const student = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        reservations: true,
-        payments: true,
+        reservations: {
+          include: {
+            meal: true,
+          },
+        },
       },
     });
 
@@ -28,29 +31,91 @@ export const scanStudentQR = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "QR code is not for a student" });
     }
 
-    // Calculate meal information based on reservations and payments
-    const totalReservations = student.reservations.length;
-    const usedReservations = student.reservations.filter(r => r.status === "USED").length;
-    const paidMeals = student.payments.filter(p => p.status === "PAID").length;
-    
-    // For simplicity, we'll consider paid meals as total meals and used reservations as used meals
-    const totalMeals = paidMeals;
-    const usedMeals = usedReservations;
-    const remainingMeals = totalMeals - usedMeals;
+    // Get today's date (start and end)
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+    // Filter reservations for today
+    const todayReservations = student.reservations.filter(reservation => {
+      const reservationDate = new Date(reservation.date);
+      return reservationDate >= todayStart && reservationDate < todayEnd;
+    });
+
+    // Format today's reservations
+    const formattedReservations = todayReservations.map(reservation => ({
+      id: reservation.id,
+      date: reservation.date,
+      mealType: reservation.meal?.type || 'UNKNOWN',
+      status: reservation.status,
+      mealDate: reservation.meal?.date,
+    }));
 
     // Log the scan for tracking (optional)
-    console.log(`Agent ${agentId} scanned student ${userId}`);
+    console.log(`Agent ${agentId} scanned student ${userId}, found ${todayReservations.length} reservations for today`);
 
     res.json({
       id: student.id,
       firstName: student.firstName,
       lastName: student.lastName,
-      totalMeals,
-      usedMeals,
-      remainingMeals,
+      todayReservations: formattedReservations,
+      totalReservationsToday: todayReservations.length,
     });
   } catch (error: any) {
     console.error("Scan error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// VALIDATE MEAL
+export const validateMeal = async (req: AuthRequest, res: Response) => {
+  try {
+    const { studentId, reservationId, mealType } = req.body;
+    const agentId = req.user?.id;
+
+    if (!studentId || !reservationId || !mealType) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Find the reservation
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: {
+        meal: true,
+        user: true
+      }
+    });
+
+    if (!reservation) {
+      return res.status(404).json({ message: "Reservation not found" });
+    }
+
+    if (reservation.userId !== studentId) {
+      return res.status(400).json({ message: "Reservation does not belong to this student" });
+    }
+
+    if (reservation.status === "USED") {
+      return res.status(400).json({ message: "Meal already used" });
+    }
+
+    // Update reservation status to USED
+    const updatedReservation = await prisma.reservation.update({
+      where: { id: reservationId },
+      data: {
+        status: "USED",
+        usedAt: new Date(),
+        validatedBy: agentId
+      }
+    });
+
+    console.log(`Agent ${agentId} validated ${mealType} for student ${studentId}, reservation ${reservationId}`);
+
+    res.json({
+      message: "Meal validated successfully",
+      reservation: updatedReservation
+    });
+  } catch (error: any) {
+    console.error("Meal validation error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
