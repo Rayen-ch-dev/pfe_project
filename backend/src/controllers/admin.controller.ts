@@ -717,12 +717,16 @@ export const getMonthlyStats = async (req: Request, res: Response) => {
 // Get Meal Type Distribution
 export const getMealDistribution = async (req: Request, res: Response) => {
   try {
+    console.log('🔍 Getting meal distribution...');
+    
     const mealTypes = await prisma.meal.groupBy({
       by: ['type'],
       _count: {
         id: true
       }
     });
+
+    console.log('📊 Raw meal types from database:', mealTypes);
 
     const distribution = mealTypes.map((meal, index) => {
       const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#F97316'];
@@ -731,13 +735,17 @@ export const getMealDistribution = async (req: Request, res: Response) => {
         'DINNER': 'Dîner'
       };
 
-      return {
+      const mapped = {
         name: typeNames[meal.type as keyof typeof typeNames] || meal.type,
         value: meal._count.id,
         color: colors[index % colors.length]
       };
+
+      console.log(`🍽️ Mapping meal type ${meal.type}:`, mapped);
+      return mapped;
     });
 
+    console.log('📊 Final meal distribution data:', distribution);
     res.json(distribution);
   } catch (error: any) {
     console.error('Error getting meal distribution:', error);
@@ -788,6 +796,8 @@ export const getWeeklyActivity = async (req: Request, res: Response) => {
       });
     }
 
+    console.log('📊 Weekly activity data:', weeklyData);
+    console.log('📊 Weekly data characters:', weeklyData.map(d => ({ day: d.day, dayChars: d.day.split('').map(c => c.charCodeAt(0)) })));
     res.json(weeklyData);
   } catch (error: any) {
     console.error('Error getting weekly activity:', error);
@@ -798,6 +808,20 @@ export const getWeeklyActivity = async (req: Request, res: Response) => {
 // Get User Growth Data
 export const getUserGrowth = async (req: Request, res: Response) => {
   try {
+    console.log('🔍 getUserGrowth called - checking user data...');
+    
+    // First, let's see what users exist
+    const allUsers = await prisma.user.findMany({
+      select: {
+        role: true,
+        createdAt: true
+      }
+    });
+    
+    console.log('📊 Total users found:', allUsers.length);
+    console.log('👥 User roles:', allUsers.map(u => u.role));
+    console.log('📅 User creation dates:', allUsers.map(u => u.createdAt));
+
     const now = new Date();
     const months = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aout', 'Sep', 'Oct', 'Nov', 'Dec'];
     const growthData = [];
@@ -807,6 +831,8 @@ export const getUserGrowth = async (req: Request, res: Response) => {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
       const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+
+      console.log(`🔍 Checking month: ${months[monthDate.getMonth()]} (${startOfMonth} to ${endOfMonth})`);
 
       const students = await prisma.user.count({
         where: {
@@ -837,6 +863,8 @@ export const getUserGrowth = async (req: Request, res: Response) => {
           }
         }
       });
+
+      console.log(`📊 ${months[monthDate.getMonth()]}: students=${students}, agents=${agents}, admins=${admins}`);
 
       growthData.push({
         month: months[monthDate.getMonth()],

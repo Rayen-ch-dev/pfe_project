@@ -2,6 +2,45 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
+/** Calendar day in local time (same interpretation as existing toDateString() checks). */
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
+
+/**
+ * Lunch for calendar day D: reservable from D-1 at 19:00 until D at 8:30 (local time).
+ */
+function isWithinLunchReservationWindow(now: Date, mealDay: Date): boolean {
+  const dayStart = startOfLocalDay(mealDay);
+  const windowEnd = new Date(dayStart);
+  windowEnd.setHours(8, 30, 0, 0);
+  const windowStart = new Date(dayStart);
+  windowStart.setDate(windowStart.getDate() - 1);
+  windowStart.setHours(19, 0, 0, 0);
+  const t = now.getTime();
+  return t >= windowStart.getTime() && t < windowEnd.getTime();
+}
+
+/**
+ * Dinner for calendar day D: reservable from D-1 at 19:00 until D at 14:00 (local time).
+ */
+function isWithinDinnerReservationWindow(now: Date, mealDay: Date): boolean {
+  const dayStart = startOfLocalDay(mealDay);
+  const windowEnd = new Date(dayStart);
+  windowEnd.setHours(14, 0, 0, 0);
+  const windowStart = new Date(dayStart);
+  windowStart.setDate(windowStart.getDate() - 1);
+  windowStart.setHours(19, 0, 0, 0);
+  const t = now.getTime();
+  return t >= windowStart.getTime() && t < windowEnd.getTime();
+}
+
+const LUNCH_RESERVATION_WINDOW_MESSAGE =
+  "Les réservations pour le déjeuner sont ouvertes de 19h00 la veille jusqu'à 8h30 le jour du repas.";
+
+const DINNER_RESERVATION_WINDOW_MESSAGE =
+  "Les réservations pour le dîner sont ouvertes de 19h00 la veille jusqu'à 14h le jour du repas.";
+
 export const getMonthlyMealsCount = async (req: AuthRequest, res: Response) => {
   try {
     // Current month range
@@ -82,50 +121,71 @@ export const getTodayMealsCount = async (req: AuthRequest, res: Response) => {
 export const createReservation = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { mealType, date } = req.body;
+    const { mealType, date, forMealType } = req.body;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Time-based reservation restrictions for students
+    // Mobile uses CHECK to count same-day reservations before creating (not a Prisma MealType)
+    if (mealType === "CHECK") {
+      const target =
+        forMealType === "LUNCH" || forMealType === "DINNER" ? forMealType : "DINNER";
+      const checkDate = date ? new Date(date) : new Date();
+      const dayStart = startOfLocalDay(checkDate);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const existingReservations = await prisma.reservation.count({
+        where: {
+          userId: userId as string,
+          status: { not: "CANCELLED" },
+          meal: {
+            type: target,
+            date: {
+              gte: dayStart,
+              lte: dayEnd,
+            },
+          },
+        },
+      });
+
+      return res.status(200).json({
+        message: "CHECK",
+        existingReservations,
+      });
+    }
+
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTimeInMinutes = currentHour * 60 + currentMinute;
     const reservationDate = date ? new Date(date) : new Date();
-    
-    // Time windows in minutes from midnight
-    const DINNER_START_TIME = 8 * 60 + 30; // 8:30 AM = 510 minutes
-    const LUNCH_START_TIME = 14 * 60; // 2:00 PM = 840 minutes  
-    const END_TIME = 19 * 60; // 7:00 PM = 1140 minutes
-    
-    // Check if reservation is for today
+
     const isToday = reservationDate.toDateString() === now.toDateString();
-    // Check if reservation is for tomorrow
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const isTomorrow = reservationDate.toDateString() === tomorrow.toDateString();
-    // Check if reservation is for day after tomorrow
     const dayAfterTomorrow = new Date(now);
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
     const isDayAfterTomorrow = reservationDate.toDateString() === dayAfterTomorrow.toDateString();
 
     if (mealType === 'LUNCH') {
-      // Only allow today, tomorrow, or day after tomorrow
       if (!isToday && !isTomorrow && !isDayAfterTomorrow) {
-        return res.status(400).json({ 
-          message: "Vous pouvez seulement réserver pour aujourd'hui, demain, ou après-demain." 
+        return res.status(400).json({
+          message: "Vous pouvez seulement réserver pour aujourd'hui, demain, ou après-demain.",
         });
+      }
+      if (!isWithinLunchReservationWindow(now, reservationDate)) {
+        return res.status(400).json({ message: LUNCH_RESERVATION_WINDOW_MESSAGE });
       }
     }
 
     if (mealType === 'DINNER') {
-      // Only allow today, tomorrow, or day after tomorrow
       if (!isToday && !isTomorrow && !isDayAfterTomorrow) {
-        return res.status(400).json({ 
-          message: "Vous pouvez seulement réserver pour aujourd'hui, demain, ou après-demain." 
+        return res.status(400).json({
+          message: "Vous pouvez seulement réserver pour aujourd'hui, demain, ou après-demain.",
         });
+      }
+      if (!isWithinDinnerReservationWindow(now, reservationDate)) {
+        return res.status(400).json({ message: DINNER_RESERVATION_WINDOW_MESSAGE });
       }
     }
 
@@ -192,16 +252,30 @@ export const createReservation = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Check if reservation already exists
-    const existingReservation = await prisma.reservation.findFirst({
+    const dayStart = startOfLocalDay(mealDate);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+    const mt = mealType || "DINNER";
+
+    const reservationsSameDayType = await prisma.reservation.count({
       where: {
-        userId: req.user?.id as string,
-        mealId: meal.id,
+        userId: userId as string,
+        status: { not: "CANCELLED" },
+        meal: {
+          type: mt,
+          date: {
+            gte: dayStart,
+            lte: dayEnd,
+          },
+        },
       },
     });
 
-    if (existingReservation) {
-      return res.status(400).json({ message: "Reservation already exists for this meal" });
+    if (reservationsSameDayType >= 2) {
+      return res.status(400).json({
+        message:
+          "Limite atteinte : 2 réservations maximum par jour pour ce type de repas (déjeuner ou dîner).",
+      });
     }
 
     // Create reservation

@@ -57,15 +57,20 @@ export const login = async (req: Request, res: Response) => {
 
     // Get user data to return with token
     const { prisma } = await import("../lib/prisma");
+    console.log('🔍 Login attempt for email:', email);
+    
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
         id: true,
         firstName: true,
         lastName: true,
+        email: true,
         role: true,
       },
     });
+
+    console.log('📊 User found in database:', user);
 
     if (!user) {
       throw new Error("User not found");
@@ -77,15 +82,20 @@ export const login = async (req: Request, res: Response) => {
       sameSite: "lax",
     });
 
+    const responseUser = {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+    };
+
+    console.log('📤 User object being sent to frontend:', responseUser);
+
     res.json({
       message: "logged in",
       token,
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-      },
+      user: responseUser,
     });
   } catch (error: any) {
     res.status(400).json({
