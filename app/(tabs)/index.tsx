@@ -82,54 +82,78 @@ export default function Index() {
         return;
       }
 
-      // Time-based restrictions (following your specific requirements)
       const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const currentTimeInMinutes = currentHour * 60 + currentMinute;
-      
-      // Time windows in minutes from midnight
-      const DINNER_START_TIME = 8 * 60 + 30; // 8:30 AM = 510 minutes
-      const LUNCH_START_TIME = 14 * 60; // 2:00 PM = 840 minutes  
-      const END_TIME = 19 * 60; // 7:00 PM = 1140 minutes
-      
+      const startOfLocalDay = (d: Date) =>
+        new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+
+      /** Déjeuner jour J : entre veille 19h et J 8h30. */
+      const isWithinLunchReservationWindow = (t: Date, mealDay: Date) => {
+        const dayStart = startOfLocalDay(mealDay);
+        const windowEnd = new Date(dayStart);
+        windowEnd.setHours(8, 30, 0, 0);
+        const windowStart = new Date(dayStart);
+        windowStart.setDate(windowStart.getDate() - 1);
+        windowStart.setHours(19, 0, 0, 0);
+        const x = t.getTime();
+        return x >= windowStart.getTime() && x < windowEnd.getTime();
+      };
+
+      /** Dîner jour J : entre veille 19h et J 14h. */
+      const isWithinDinnerReservationWindow = (t: Date, mealDay: Date) => {
+        const dayStart = startOfLocalDay(mealDay);
+        const windowEnd = new Date(dayStart);
+        windowEnd.setHours(14, 0, 0, 0);
+        const windowStart = new Date(dayStart);
+        windowStart.setDate(windowStart.getDate() - 1);
+        windowStart.setHours(19, 0, 0, 0);
+        const x = t.getTime();
+        return x >= windowStart.getTime() && x < windowEnd.getTime();
+      };
+
+      const LUNCH_WINDOW_HINT =
+        "Déjeuner : de 19h00 la veille jusqu'à 8h30 le jour du repas.";
+      const DINNER_WINDOW_HINT =
+        "Dîner : de 19h00 la veille jusqu'à 14h le jour du repas.";
+
       let restrictionMessage = "";
       let canReserve = false;
       let reservationDate = new Date();
-      
+
       if (mealType === 'DINNER') {
-        // Dinner: 8:30 AM to 7:00 PM
-        if (currentTimeInMinutes >= DINNER_START_TIME && currentTimeInMinutes < END_TIME) {
+        for (let offset = 0; offset < 3; offset++) {
+          const candidate = new Date(now);
+          candidate.setDate(candidate.getDate() + offset);
+          if (!isWithinDinnerReservationWindow(now, candidate)) continue;
+          reservationDate = new Date(candidate);
+          reservationDate.setHours(19, 0, 0, 0);
           canReserve = true;
-          // Can reserve for TODAY (current day)
-          reservationDate.setHours(19, 0, 0, 0); // 7:00 PM today
-        } else if (currentTimeInMinutes < DINNER_START_TIME) {
-          restrictionMessage = "La réservation pour le dîner d'aujourd'hui est possible à partir de 8h30.";
-        } else {
-          restrictionMessage = "La réservation pour le dîner d'aujourd'hui n'est plus possible après 19h.";
+          break;
+        }
+        if (!canReserve) {
+          restrictionMessage =
+            "Ce n'est pas dans la fenêtre de réservation du dîner. " + DINNER_WINDOW_HINT;
         }
       } else if (mealType === 'LUNCH') {
-        // Lunch: 8:30 AM to 7:00 PM (for today's lunch if before 11:30 AM)
-        if (currentTimeInMinutes >= DINNER_START_TIME && currentTimeInMinutes < (11 * 60 + 30)) { // 8:30 AM to 11:30 AM
+        for (let offset = 0; offset < 3; offset++) {
+          const candidate = new Date(now);
+          candidate.setDate(candidate.getDate() + offset);
+          if (!isWithinLunchReservationWindow(now, candidate)) continue;
+          reservationDate = new Date(candidate);
+          reservationDate.setHours(12, 0, 0, 0);
           canReserve = true;
-          // Can reserve for TODAY (current day)
-          reservationDate.setHours(12, 0, 0, 0); // 12:00 PM today
-        } else if (currentTimeInMinutes >= (11 * 60 + 30) && currentTimeInMinutes < LUNCH_START_TIME) { // 11:30 AM to 2:00 PM
-          restrictionMessage = "La réservation pour le déjeuner d'aujourd'hui n'est plus possible après 11h30.";
-        } else if (currentTimeInMinutes >= LUNCH_START_TIME && currentTimeInMinutes < END_TIME) { // 2:00 PM to 7:00 PM
-          canReserve = true;
-          // Can reserve for TOMORROW (after lunch time)
-          reservationDate.setDate(reservationDate.getDate() + 1);
-          reservationDate.setHours(12, 0, 0, 0); // 12:00 PM tomorrow
-        } else {
-          restrictionMessage = "La réservation pour le déjeuner de demain est possible à partir de 14h.";
+          break;
+        }
+
+        if (!canReserve) {
+          restrictionMessage =
+            "Ce n'est pas dans la fenêtre de réservation du déjeuner. " + LUNCH_WINDOW_HINT;
         }
       }
 
       if (!canReserve && restrictionMessage) {
         Alert.alert(
           "⏰ Horaire de réservation",
-          `${restrictionMessage}\n\nLes réservations sont possibles:\n• Dîner aujourd'hui: 8h30 - 19h\n• Déjeuner aujourd'hui: 8h30 - 11h30\n• Déjeuner demain: 14h - 19h`,
+          `${restrictionMessage}\n\n• ${DINNER_WINDOW_HINT}\n• ${LUNCH_WINDOW_HINT}`,
           [{ text: "OK" }]
         );
         return;
@@ -141,30 +165,26 @@ export default function Index() {
       const targetDayEnd = new Date(reservationDate);
       targetDayEnd.setHours(23, 59, 59, 999); // End of target day
 
-      try {
-        // Check existing reservations for the target day (today or tomorrow)
-        const checkResponse = await createReservation("CHECK", targetDayStart, token);
-        // This will fail but we can use the error to get existing reservations info
-      } catch (checkError: any) {
-        const existingReservations = checkError.response?.data?.existingReservations || 0;
-        const dayText = reservationDate.toDateString() === now.toDateString() ? "aujourd'hui" : "demain";
-        
-        if (existingReservations >= 2 && count > (2 - existingReservations)) {
-          const mealName = mealType === 'LUNCH' ? 'déjeuner' : 'dîner';
-          Alert.alert(
-            "⚠️ Limite atteinte",
-            `Vous avez déjà ${existingReservations} réservation(s) de ${mealName} pour ${dayText}.\n\n` +
+      const checkResponse = await createReservation("CHECK", targetDayStart, token, {
+        forMealType: mealType,
+      });
+      const priorCount = checkResponse.data?.existingReservations ?? 0;
+      const dayText =
+        reservationDate.toDateString() === now.toDateString() ? "aujourd'hui" : "demain";
+
+      if (priorCount >= 2 && count > 2 - priorCount) {
+        const mealName = mealType === "LUNCH" ? "déjeuner" : "dîner";
+        Alert.alert(
+          "⚠️ Limite atteinte",
+          `Vous avez déjà ${priorCount} réservation(s) de ${mealName} pour ${dayText}.\n\n` +
             `Limite maximale: 2 ${mealName}s par jour.\n` +
-            `Vous pouvez encore en réserver: ${2 - existingReservations}`,
-            [{ text: "OK" }]
-          );
-          return;
-        }
+            `Vous pouvez encore en réserver: ${2 - priorCount}`,
+          [{ text: "OK" }]
+        );
+        return;
       }
 
       // Show loading indicator
-      const isToday = reservationDate.toDateString() === now.toDateString();
-      const dayText = isToday ? "aujourd'hui" : "demain";
       
       Alert.alert(
         "🔄 Réservation en cours",
@@ -173,7 +193,7 @@ export default function Index() {
       );
       
       let successfulReservations = 0;
-      let existingReservations = 0;
+      let alreadyExistingCount = 0;
       let errorMessages: string[] = [];
 
       // Process reservations one by one with better error handling
@@ -197,7 +217,7 @@ export default function Index() {
           const errorMessage = singleError.response?.data?.message || singleError.message || 'Erreur réseau';
           
           if (errorMessage.includes("already exists")) {
-            existingReservations++;
+            alreadyExistingCount++;
           } else if (errorMessage.includes("No tickets available")) {
             errorMessages.push(`Plus de tickets disponibles pour la réservation ${i + 1}`);
           } else if (errorMessage.includes("Server error")) {
@@ -215,9 +235,9 @@ export default function Index() {
         let title = "✅ Réservation réussie";
         let message = `${successfulReservations} ${mealName}(s) réservé(s) avec succès ${dayText}!`;
         
-        if (existingReservations > 0) {
+        if (alreadyExistingCount > 0) {
           title = "⚠️ Réservation partielle";
-          message = `${successfulReservations} ${mealName}(s) créé(s) avec succès!\n${existingReservations} réservation(s) existaient déjà.`;
+          message = `${successfulReservations} ${mealName}(s) créé(s) avec succès!\n${alreadyExistingCount} réservation(s) existaient déjà.`;
         }
         
         if (errorMessages.length > 0 && errorMessages.length < 3) {
@@ -230,10 +250,10 @@ export default function Index() {
           [{ text: "OK", onPress: () => loadUserTickets() }]
         );
         
-      } else if (existingReservations > 0) {
+      } else if (alreadyExistingCount > 0) {
         Alert.alert(
           "ℹ️ Information",
-          `Vous avez déjà une réservation de ${mealName} pour demain.`,
+          `Impossible d’ajouter ces réservations : la limite est de 2 ${mealName}s par jour pour la même date, ou une réservation identique existe déjà.`,
           [{ text: "OK" }]
         );
       } else {

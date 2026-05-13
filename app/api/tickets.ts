@@ -192,14 +192,23 @@ export const updateUserProfile = async (token: string, userData: {
   }
 };
 
-export const createReservation = async (mealType: string = 'DINNER', date?: Date, token?: string) => {
+export const createReservation = async (
+  mealType: string = 'DINNER',
+  date?: Date,
+  token?: string,
+  options?: { forMealType?: 'LUNCH' | 'DINNER' }
+) => {
   try {
     console.log('Creating reservation for:', mealType);
+    const body: Record<string, unknown> = {
+      mealType,
+      date: date || new Date(),
+    };
+    if (mealType === 'CHECK' && options?.forMealType) {
+      body.forMealType = options.forMealType;
+    }
     const response = await api.post('api/users/reservations', 
-      { 
-        mealType,
-        date: date || new Date(),
-      },
+      body,
       {
         headers: {
           'Authorization': token ? `Bearer ${token}` : undefined,

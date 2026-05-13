@@ -43,7 +43,7 @@ export default function Scan() {
           Cette page est uniquement accessible aux agents de restaurant.
         </Text>
         <TouchableOpacity 
-          onPress={() => router.replace("/(tabs)/index")}
+          onPress={() => router.replace("/(tabs)/index" as any)}
           className="bg-blue-600 rounded-xl px-6 py-3 mt-6"
         >
           <Text className="text-white font-semibold">Retour à l'accueil</Text>
@@ -129,9 +129,9 @@ export default function Scan() {
         id: scanData.id,
         firstName: scanData.firstName,
         lastName: scanData.lastName,
-        lunchCount: scanData.todayReservations?.filter((r: any) => r.mealType === 'LUNCH').length || 0,
-        dinnerCount: scanData.todayReservations?.filter((r: any) => r.mealType === 'DINNER').length || 0,
-        totalMeals: scanData.totalReservationsToday || 0,
+        lunchCount: scanData.todayReservations?.filter((r: any) => r.mealType === 'LUNCH' && r.status !== 'USED').length || 0,
+        dinnerCount: scanData.todayReservations?.filter((r: any) => r.mealType === 'DINNER' && r.status !== 'USED').length || 0,
+        totalMeals: scanData.todayReservations?.filter((r: any) => r.status !== 'USED').length || 0,
         todayReservations: scanData.todayReservations || []
       };
       
@@ -150,16 +150,13 @@ export default function Scan() {
       return;
     }
 
-    // Find the reservation for this meal type
-    const reservation = student.todayReservations.find(r => r.mealType === mealType);
+    // Find the next UNUSED reservation for this meal type
+    const reservation = student.todayReservations.find(
+      r => r.mealType === mealType && r.status !== 'USED'
+    );
     
     if (!reservation) {
       Alert.alert("Erreur", `Aucune réservation de type ${mealType === 'LUNCH' ? 'déjeuner' : 'dîner'} disponible pour aujourd'hui.`);
-      return;
-    }
-
-    if (reservation.status === 'USED') {
-      Alert.alert("Erreur", `Ce ${mealType === 'LUNCH' ? 'déjeuner' : 'dîner'} a déjà été utilisé.`);
       return;
     }
 
@@ -197,69 +194,33 @@ export default function Scan() {
       const result = await response.json();
       console.log('Meal validation result:', result);
       
+      // Update UI immediately: mark USED + recompute counts (show only unused tickets)
+      setScanResult(current => {
+        if (!current) return current;
+        const updatedReservations = (current.todayReservations || []).map(r =>
+          r.id === reservation.id ? { ...r, status: 'USED' } : r
+        );
+        const updatedLunchCount =
+          updatedReservations.filter(r => r.mealType === 'LUNCH' && r.status !== 'USED').length || 0;
+        const updatedDinnerCount =
+          updatedReservations.filter(r => r.mealType === 'DINNER' && r.status !== 'USED').length || 0;
+        const updatedTotalMeals = updatedReservations.filter(r => r.status !== 'USED').length || 0;
+
+        return {
+          ...current,
+          todayReservations: updatedReservations,
+          lunchCount: updatedLunchCount,
+          dinnerCount: updatedDinnerCount,
+          totalMeals: updatedTotalMeals,
+        };
+      });
+
       Alert.alert(
         "Succès",
         `${mealType === 'LUNCH' ? 'Déjeuner' : 'Dîner'} validé avec succès!`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setScanned(false);
-              setScanResult(null);
-            }
-          }
-        ]
+        [{ text: "OK" }]
       );
       
-      // Update the scan result to reflect validation
-      setScanResult({
-        ...student,
-        todayReservations: student.todayReservations?.map(r => 
-          r.id === reservation.id ? { ...r, status: 'USED' } : r
-        )
-      });
-
-      // Refresh the scan result after validation to show updated counts
-      setTimeout(() => {
-        // Get the updated reservations from current state
-        setScanResult(currentResult => {
-          if (currentResult && currentResult.todayReservations) {
-            const updatedLunchCount = currentResult.todayReservations?.filter((r: any) => r.mealType === 'LUNCH' && r.status !== 'USED').length || 0;
-            const updatedDinnerCount = currentResult.todayReservations?.filter((r: any) => r.mealType === 'DINNER' && r.status !== 'USED').length || 0;
-            const updatedTotalMeals = updatedLunchCount + updatedDinnerCount;
-            
-            return {
-              ...currentResult,
-              lunchCount: updatedLunchCount,
-              dinnerCount: updatedDinnerCount,
-              totalMeals: updatedTotalMeals,
-              todayReservations: currentResult.todayReservations
-            };
-          }
-          return currentResult;
-        });
-      }, 1000);
-      
-    } catch (error: any) {
-      console.error("Validation error:", error);
-      Alert.alert("Erreur", "Échec de la validation du repas.");
-    }
-  };
-
-  const handleValidateMeal = async (student: ScanResult) => {
-    if (student.remainingMeals <= 0) {
-      Alert.alert("Erreur", "Cet étudiant n'a plus de tickets disponibles.");
-      setScanned(false);
-      setScanResult(null);
-      return;
-    }
-
-    try {
-      // TODO: Implement actual API call to validate meal
-      console.log('Validating meal for student:', student.id);
-      
-      setScanned(false);
-      setScanResult(null);
     } catch (error: any) {
       console.error("Validation error:", error);
       Alert.alert("Erreur", "Échec de la validation du repas.");
