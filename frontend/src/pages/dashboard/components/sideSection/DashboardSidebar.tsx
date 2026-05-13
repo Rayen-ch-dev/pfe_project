@@ -115,11 +115,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
       current: location.pathname === '/dashboard/reports',
       roles: ['ADMIN'],
     },
-    {
-      name: 'Profil',
-      href: '/dashboard/profile',
+        {
+      name: 'Paramètres',
+      href: '/dashboard/settings',
       icon: getIcon('settings'),
-      current: location.pathname === '/dashboard/profile',
+      current: location.pathname === '/dashboard/settings',
     },
   ];
 

@@ -9,7 +9,7 @@ import UsersPage from './pages/dashboard/UsersPage';
 import ReservationsPage from './pages/dashboard/ReservationsPage';
 import PaymentsPage from './pages/dashboard/PaymentsPage';
 import ReportsPage from './pages/dashboard/ReportsPage';
-import ProfilePage from './pages/dashboard/ProfilePage';
+import SettingsPage from './pages/dashboard/SettingsPage';
 
 const App: React.FC = () => {
   return (
@@ -29,7 +29,8 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }>
             <Route index element={<Dashboard />} />
-            <Route path="profile" element={<ProfilePage />} />
+           
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="reservations" element={
               <ProtectedRoute allowedRoles={['ADMIN', 'AGENT_RESTAURANT']}>
                 <ReservationsPage />

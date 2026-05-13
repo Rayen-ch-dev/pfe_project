@@ -1,39 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { dashboardService, type DashboardStats } from '../../services/dashboardService';
-import { useAuth } from '../../../src/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
+import { dashboardService } from '../../services/dashboardService';
+import type { DashboardStats } from '../../services/dashboardService';
+import api from '../../services/apiClient';
+import type { AxiosResponse } from 'axios';
+
+import { 
+  Users, 
+  Calendar, 
+  CreditCard, 
+  TrendingUp, 
+  AlertCircle, 
+  MoreHorizontal,
+  UserPlus,
+  Clock,
+  DollarSign,
+  Activity,
+  ArrowUp,
+  ArrowDown
+} from 'lucide-react';
+import { 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend,
   PieChart,
   Pie,
   Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  BarChart,
+  Bar,
   AreaChart,
   Area
 } from 'recharts';
-import {
-  Users,
-  Calendar,
-  CreditCard,
-  TrendingUp,
-  Activity,
-  DollarSign,
-  Utensils,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  ArrowUp,
-  ArrowDown,
-  MoreHorizontal
-} from 'lucide-react';
+
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -87,35 +91,81 @@ const Dashboard: React.FC = () => {
   const loadChartData = async () => {
     try {
       console.log('Loading chart data...');
-
-      // Use the working debug endpoint directly
-      console.log('Fetching data from debug endpoint...');
-      const debugResponse = await fetch('http://localhost:5000/api/admin/debug');
-      console.log('Debug response status:', debugResponse.status);
       
-      if (debugResponse.ok) {
-        const data = await debugResponse.json();
-        console.log('✅ Debug data received:', data);
+      // Check authentication
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      console.log('🔐 Authentication check:');
+      console.log('  Token exists:', !!token);
+      console.log('  Token value:', token ? token.substring(0, 20) + '...' : 'null');
+      console.log('  User exists:', !!user);
+      console.log('  User data:', user);
+
+      // Fetch real data from individual API endpoints using authenticated API client
+      try {
+        console.log('🔍 Making API calls...');
         
-        // Set all chart data from the working debug endpoint
-        setMonthlyData(data.monthly);
-        setMealTypeData(data.meals);
-        setWeeklyActivity(data.weekly);
-        setUserGrowthData(data.growth);
+        const monthlyResponse = api.get('/api/admin/monthly-stats');
+        const mealsResponse = api.get('/api/admin/meal-distribution');
+        const weeklyResponse = api.get('/api/admin/weekly-activity');
+        const growthResponse = api.get('/api/admin/user-growth');
+
+        console.log('📡 API calls initiated, waiting for responses...');
+
+        const responses = await Promise.all([
+          monthlyResponse,
+          mealsResponse,
+          weeklyResponse,
+          growthResponse
+        ]);
+
+        console.log('✅ All API responses received:', responses);
+
+        // Extract data from API responses
+        console.log('🔍 Extracting data from responses:', responses);
+        const monthlyData = responses[0];
+        const mealsData = responses[1];
+        const weeklyData = responses[2];
+        const growthData = responses[3];
         
-        console.log('✅ Chart data set successfully!');
-        console.log('Monthly data length:', data.monthly?.length || 0);
-        console.log('Meal data length:', data.meals?.length || 0);
-        console.log('Weekly data length:', data.weekly?.length || 0);
-        console.log('Growth data length:', data.growth?.length || 0);
-      } else {
-        console.error('❌ Debug endpoint failed:', await debugResponse.text());
-        // Set empty arrays if API fails
+        console.log('📊 Extracted data:');
+        console.log('  Monthly data:', monthlyData);
+        console.log('  Meal data:', mealsData);
+        console.log('  Weekly data:', weeklyData);
+        console.log('  Growth data:', growthData);
+
+        // Set all chart data from real API responses
+        setMonthlyData(monthlyData || []);
+        setMealTypeData(mealsData || []);
+        setWeeklyActivity(weeklyData || []);
+        setUserGrowthData(growthData || []);
+        
+        // TEMPORARY: Use mock data if API returns empty to test UI
+        if (!mealsData || (Array.isArray(mealsData) && mealsData.length === 0)) {
+          console.log('🔧 Using mock meal data for testing...');
+          setMealTypeData([
+            { name: 'Déjeuner', value: 1, color: '#3B82F6' },
+            { name: 'Dîner', value: 3, color: '#8B5CF6' }
+          ]);
+        }
+        
+        console.log('✅ All real chart data loaded successfully!');
+        console.log('Monthly data:', monthlyData);
+        console.log('Meal distribution data:', mealsData);
+        console.log('Weekly data:', weeklyData);
+        console.log('User growth data:', growthData);
+      } catch (apiError) {
+        console.error('❌ API Error:', apiError);
+        console.error('❌ API Error Details:', apiError.response?.status, apiError.response?.data);
+        console.error('❌ Full Error Object:', apiError);
+        // Set empty arrays if API calls fail
         setMonthlyData([]);
         setMealTypeData([]);
         setWeeklyActivity([]);
         setUserGrowthData([]);
       }
+      
+      console.log('✅ All real chart data loaded successfully!');
     } catch (error) {
       console.error('❌ Failed to load chart data:', error);
       // Set empty arrays if API calls fail

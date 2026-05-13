@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.56.1:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({

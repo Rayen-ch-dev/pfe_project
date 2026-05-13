@@ -60,8 +60,16 @@ const PaymentsPage: React.FC = () => {
   const handleApprovePayment = async (paymentId: string) => {
     setPaymentLoading(paymentId, true);
     try {
-      await api.put(`/api/admin/payments/${paymentId}/approve`);
-      await loadPayments();
+      console.log('🔵 Approving payment:', paymentId);
+      const response = await api.put(`/api/admin/payments/${paymentId}/approve`);
+      console.log('✅ Payment approve response:', response);
+      
+      // Force a small delay to ensure backend processes the change
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clear any cached data and force reload
+      setPayments([]); // Clear current payments
+      await loadPayments(); // Reload fresh data
     } catch (err: any) {
       console.error('Failed to approve payment:', err);
       setError('Échec de l\'approbation du paiement');
@@ -74,8 +82,16 @@ const PaymentsPage: React.FC = () => {
     if (!window.confirm('Confirmer le rejet de ce paiement ?')) return;
     setPaymentLoading(paymentId, true);
     try {
-      await api.put(`/api/admin/payments/${paymentId}/reject`);
-      await loadPayments();
+      console.log('🔴 Rejecting payment:', paymentId);
+      const response = await api.put(`/api/admin/payments/${paymentId}/reject`);
+      console.log('✅ Payment reject response:', response);
+      
+      // Force a small delay to ensure backend processes the change
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clear any cached data and force reload
+      setPayments([]); // Clear current payments
+      await loadPayments(); // Reload fresh data
     } catch (err: any) {
       console.error('Failed to reject payment:', err);
       setError('Échec du rejet du paiement');
@@ -90,12 +106,22 @@ const PaymentsPage: React.FC = () => {
     if (!window.confirm(`Approuver ${selectedPayments.length} paiement(s) ?`)) return;
     try {
       setLoading(true);
-      await Promise.all(
+      console.log('🔵 Bulk approving payments:', selectedPayments);
+      
+      const responses = await Promise.all(
         selectedPayments.map(id => api.put(`/api/admin/payments/${id}/approve`))
       );
-      await loadPayments();
+      console.log('✅ Bulk approve responses:', responses);
+      
+      // Force a small delay to ensure backend processes changes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clear any cached data and force reload
+      setPayments([]); // Clear current payments
+      await loadPayments(); // Reload fresh data
       setSelectedPayments([]);
     } catch (err: any) {
+      console.error('Failed to bulk approve payments:', err);
       setError('Échec de l\'approbation groupée');
     } finally {
       setLoading(false);
@@ -374,9 +400,6 @@ const PaymentsPage: React.FC = () => {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Statut
                       </th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Actions
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -436,38 +459,42 @@ const PaymentsPage: React.FC = () => {
                             <div className="text-xs text-gray-500">{time}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg border ${getStatusColor(payment.status)}`}
-                            >
-                              {getStatusLabel(payment.status)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
                             {payment.status === 'PENDING' && (
-                              <div className="flex items-center justify-end space-x-2">
-                                <button
-                                  onClick={() => handleApprovePayment(payment.id)}
-                                  disabled={isLoading}
-                                  className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                              <div className="flex items-center space-x-2">
+                                <span
+                                  className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg border ${getStatusColor(payment.status)}`}
                                 >
-                                  {isLoading ? '…' : '✓ Approuver'}
-                                </button>
-                                <button
-                                  onClick={() => handleRejectPayment(payment.id)}
-                                  disabled={isLoading}
-                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
-                                >
-                                  {isLoading ? '…' : '✗ Rejeter'}
-                                </button>
+                                  {getStatusLabel(payment.status)}
+                                </span>
+                                <div className="flex items-center space-x-1">
+                                  <button
+                                    onClick={() => handleApprovePayment(payment.id)}
+                                    disabled={isLoading}
+                                    className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                                  >
+                                    {isLoading ? '…' : '✓'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectPayment(payment.id)}
+                                    disabled={isLoading}
+                                    className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                                  >
+                                    {isLoading ? '…' : '✗'}
+                                  </button>
+                                </div>
                               </div>
                             )}
                             {payment.status === 'PAID' && (
-                              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg border ${getStatusColor(payment.status)}`}
+                              >
                                 ✓ Approuvé
                               </span>
                             )}
                             {payment.status === 'CANCELLED' && (
-                              <span className="px-3 py-1 bg-red-100 text-red-800 rounded-lg text-sm font-medium">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-lg border ${getStatusColor(payment.status)}`}
+                              >
                                 ✗ Rejeté
                               </span>
                             )}

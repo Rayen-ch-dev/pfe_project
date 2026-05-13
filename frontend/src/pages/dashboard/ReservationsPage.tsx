@@ -11,6 +11,7 @@ const ReservationsPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'tomorrow' | 'thisWeek' | 'thisYear'>('all');
 
   useEffect(() => {
     loadReservations();
@@ -41,6 +42,39 @@ const ReservationsPage: React.FC = () => {
     setSelectedReservation(null);
   };
 
+  const filterByDate = (reservation: Reservation) => {
+    const reservationDate = new Date(reservation.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const endOfYear = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+    
+    switch (dateFilter) {
+      case 'today':
+        return reservationDate >= today && reservationDate < tomorrow;
+      case 'tomorrow':
+        return reservationDate >= tomorrow && reservationDate < new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000);
+      case 'thisWeek':
+        return reservationDate >= startOfWeek && reservationDate <= endOfWeek;
+      case 'thisYear':
+        return reservationDate >= startOfYear && reservationDate <= endOfYear;
+      default:
+        return true;
+    }
+  };
+
   const filteredReservations = reservations.filter(reservation => {
     const matchesSearch = 
       reservation.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,8 +83,9 @@ const ReservationsPage: React.FC = () => {
       reservation.id.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || reservation.status === filterStatus;
+    const matchesDate = filterByDate(reservation);
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDate;
   }).sort((a, b) => {
     let compareA, compareB;
     switch (sortBy) {
@@ -79,7 +114,7 @@ const ReservationsPage: React.FC = () => {
       case 'PAYMENT_PENDING': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'CANCELLED': return 'bg-red-100 text-red-800 border-red-200';
-      case 'COMPLETED': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'USED': return 'bg-blue-100 text-blue-800 border-blue-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -90,7 +125,7 @@ const ReservationsPage: React.FC = () => {
       case 'PAYMENT_PENDING': return 'Paiement en attente';
       case 'PENDING': return 'En attente';
       case 'CANCELLED': return 'Annulée';
-      case 'COMPLETED': return 'Terminée';
+      case 'USED': return 'Utilisée';
       default: return status;
     }
   };
@@ -105,13 +140,12 @@ const ReservationsPage: React.FC = () => {
 
   
   const stats = {
-    total: reservations.length,
-    confirmed: reservations.filter(r => r.status === 'CONFIRMED').length,
-    pending: reservations.filter(r => r.status === 'PENDING').length,
-    completed: reservations.filter(r => r.status === 'COMPLETED').length,
-    cancelled: reservations.filter(r => r.status === 'CANCELLED').length,
-    lunch: reservations.filter(r => r.mealType === 'LUNCH').length,
-    dinner: reservations.filter(r => r.mealType === 'DINNER').length,
+    total: filteredReservations.length,
+    confirmed: filteredReservations.filter(r => r.status === 'CONFIRMED').length,
+    used: filteredReservations.filter(r => r.status === 'USED').length,
+    cancelled: filteredReservations.filter(r => r.status === 'CANCELLED').length,
+    lunch: filteredReservations.filter(r => r.mealType === 'LUNCH').length,
+    dinner: filteredReservations.filter(r => r.mealType === 'DINNER').length,
   };
 
   return (
@@ -123,12 +157,57 @@ const ReservationsPage: React.FC = () => {
           <p className="text-gray-600 mt-1">Gérez toutes les réservations du système</p>
         </div>
         <div className="flex items-center space-x-4">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Nouvelle Réservation
-          </button>
           <button className="px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
             Exporter
           </button>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Total Reservations */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Réservations</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
+            </div>
+            <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Confirmed Reservations */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Confirmées</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{stats.confirmed}</p>
+            </div>
+            <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
+              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Used Reservations */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Utilisées</p>
+              <p className="text-2xl font-bold text-purple-600 mt-1">{stats.used}</p>
+            </div>
+            <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -143,6 +222,21 @@ const ReservationsPage: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
+          </div>
+          
+          {/* Date Filter */}
+          <div className="lg:w-64">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as any)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            >
+              <option value="all">Toutes les dates</option>
+              <option value="today">Aujourd'hui</option>
+              <option value="tomorrow">Demain</option>
+              <option value="thisWeek">Cette semaine</option>
+              <option value="thisYear">Cette année</option>
+            </select>
           </div>
         </div>
       </div>
