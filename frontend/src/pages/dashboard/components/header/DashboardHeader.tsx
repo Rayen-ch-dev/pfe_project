@@ -48,14 +48,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ toggleSidebar, sideba
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 relative z-30">
+    <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 relative z-30 transition-colors">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left side - Logo and Menu Toggle */}
           <div className="flex items-center">
             <button
               onClick={toggleSidebar}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden"
+              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -72,8 +72,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ toggleSidebar, sideba
                   </div>
                 </div>
                 <div className="ml-3">
-                  <h1 className="text-xl font-bold text-gray-900">Portail Scolaire</h1>
-                  <p className="text-xs text-gray-500">Tableau de bord</p>
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Portail de Restauration Universitaire</h1>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Tableau de bord</p>
                 </div>
               </div>
             </div>
@@ -82,7 +82,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ toggleSidebar, sideba
           {/* Right side - User Info */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <button className="p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+            <button className="p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
@@ -118,7 +118,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ toggleSidebar, sideba
                   {/* Dropdown Menu */}
                   <div
                     id="user-menu"
-                    className="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                    className="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-600 focus:outline-none"
                   >
                     <div className="py-1">
                                             <a
@@ -127,14 +127,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ toggleSidebar, sideba
                           e.preventDefault();
                           navigate('/dashboard/settings');
                         }}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         Paramètres
                       </a>
                       <hr className="my-1" />
                       <button
                         onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         Déconnexion
                       </button>

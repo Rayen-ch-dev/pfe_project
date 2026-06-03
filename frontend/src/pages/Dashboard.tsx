@@ -55,7 +55,6 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch all data in parallel
       const [statsData, usersData, reservationsData] = await Promise.all([
         dashboardService.getStats(),
         dashboardService.getUsers(),
@@ -74,9 +73,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Process real data for charts
   const processChartData = () => {
-    // User growth data - group users by month
     const userGrowthByMonth = users.reduce((acc: any, user) => {
       const date = new Date(user.createdAt);
       const monthKey = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
@@ -84,24 +81,22 @@ const AdminDashboard: React.FC = () => {
       return acc;
     }, {});
 
-    // Reservation status data
     const reservationStatusCount = reservations.reduce((acc: any, reservation) => {
       const status = reservation.status || 'UNKNOWN';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
 
-    // Revenue data (mock for now - you can add payment data later)
     const revenueByMonth = reservations.reduce((acc: any, reservation) => {
       const date = new Date(reservation.date);
       const monthKey = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
-      acc[monthKey] = (acc[monthKey] || 0) + 10; // Assuming €10 per reservation
+      acc[monthKey] = (acc[monthKey] || 0) + 10;
       return acc;
     }, {});
 
     return {
       userGrowthData: {
-        labels: Object.keys(userGrowthByMonth).slice(-6), // Last 6 months
+        labels: Object.keys(userGrowthByMonth).slice(-6),
         datasets: [{
           label: 'Nouveaux utilisateurs',
           data: Object.values(userGrowthByMonth).slice(-6),
@@ -129,7 +124,7 @@ const AdminDashboard: React.FC = () => {
         }]
       },
       revenueData: {
-        labels: Object.keys(revenueByMonth).slice(-6), // Last 6 months
+        labels: Object.keys(revenueByMonth).slice(-6),
         datasets: [{
           label: 'Revenus mensuels',
           data: Object.values(revenueByMonth).slice(-6),
@@ -164,7 +159,6 @@ const AdminDashboard: React.FC = () => {
     },
   };
 
-  // Generate recent activities from real data
   const recentActivities: Array<{
     id: number;
     user: string;
@@ -173,25 +167,23 @@ const AdminDashboard: React.FC = () => {
     icon: string;
     color: string;
   }> = [
-    // Show latest users
     ...users.slice(-3).reverse().map((user, index) => ({
       id: index + 1,
       user: `${user.firstName} ${user.lastName}`,
       action: 'a créé un compte',
       time: `Il y a ${Math.floor((new Date().getTime() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60))} heures`,
-      icon: '👤',
+      icon: '',
       color: 'green'
     })),
-    // Show latest reservations
     ...reservations.slice(-2).reverse().map((reservation, index) => ({
       id: 100 + index,
       user: `${reservation.user.firstName} ${reservation.user.lastName}`,
       action: `a réservé ${reservation.mealType === 'LUNCH' ? 'un déjeuner' : 'un dîner'}`,
       time: `Il y a ${Math.floor((new Date().getTime() - new Date(reservation.date).getTime()) / (1000 * 60 * 60))} heures`,
-      icon: '🍽️',
+      icon: '',
       color: 'blue'
     }))
-  ].slice(0, 5); // Keep only 5 most recent activities
+  ].slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -300,11 +292,11 @@ const AdminDashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* Welcome Section with Stats Summary */}
+          {/* Welcome Section */}
           <div className="mb-8 flex justify-between items-end">
             <div>
               <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Bonjour, {user?.firstName || 'Administrateur'} 👋
+                Bonjour, {user?.firstName || 'Administrateur'} 
               </h2>
               <p className="text-gray-600 mt-1">Voici ce qui se passe avec votre plateforme aujourd'hui</p>
             </div>
@@ -334,7 +326,7 @@ const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Stats Grid with Modern Cards */}
+          {/* Stats Grid */}
           {!loading && !error && stats && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -523,15 +515,15 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick Actions with Modern Design */}
+              {/* Quick Actions */}
               <div className="bg-white rounded-2xl shadow-lg mb-8 overflow-hidden">
                 <div className="px-6 py-5 border-b border-gray-100">
                   <h3 className="text-lg font-semibold text-gray-900">Actions Rapides</h3>
                   <p className="text-sm text-gray-500 mt-1">Accédez rapidement aux fonctionnalités administratives</p>
                 </div>
                 <div className="px-6 py-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <button 
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <button
                       onClick={() => navigate('/dashboard/users')}
                       className="group relative overflow-hidden bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-xl"
                     >
@@ -543,7 +535,7 @@ const AdminDashboard: React.FC = () => {
                         <span>Gérer les Utilisateurs</span>
                       </div>
                     </button>
-                    <button 
+                    <button
                       onClick={() => navigate('/dashboard/payments')}
                       className="group relative overflow-hidden bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-xl"
                     >
@@ -555,7 +547,7 @@ const AdminDashboard: React.FC = () => {
                         <span>Approuver Paiements</span>
                       </div>
                     </button>
-                    <button 
+                    <button
                       onClick={() => navigate('/dashboard/reservations')}
                       className="group relative overflow-hidden bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-xl"
                     >
@@ -567,7 +559,20 @@ const AdminDashboard: React.FC = () => {
                         <span>Voir les Réservations</span>
                       </div>
                     </button>
-                    <button 
+                    {/* ── Kitchen Planning ── */}
+                    <button
+                      onClick={() => navigate('/dashboard/kitchen')}
+                      className="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-xl"
+                    >
+                      <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <span>Planification Cuisine</span>
+                      </div>
+                    </button>
+                    <button
                       onClick={() => navigate('/dashboard/reports')}
                       className="group relative overflow-hidden bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-xl"
                     >

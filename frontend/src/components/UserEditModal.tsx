@@ -47,14 +47,14 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, on
       return;
     }
 
-    console.log('🔄 Starting user update...');
-    console.log('📝 Form data:', formData);
-    console.log('👤 User ID:', user?.id);
+    console.log('Starting user update...');
+    console.log('Form data:', formData);
+    console.log('User ID:', user?.id);
 
     setLoading(true);
     try {
       // Make real API call to update user
-      console.log('📡 Calling API...');
+      console.log('Calling API...');
       const updatedUser = await dashboardService.updateUser(user!.id, {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -63,14 +63,14 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, on
         status: formData.role === 'STUDENT' ? formData.status : undefined
       });
 
-      console.log('✅ User updated successfully:', updatedUser);
+      console.log('User updated successfully:', updatedUser);
       onUpdate(updatedUser);
       onClose();
     } catch (err: any) {
-      console.error('❌ Failed to update user:', err);
-      console.error('📄 Error details:', err.response?.data);
-      console.error('🔢 Error status:', err.response?.status);
-      console.error('🔍 Full error:', err);
+      console.error('Failed to update user:', err);
+      console.error('Error details:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      console.error('Full error:', err);
       
       // Show more specific error message
       if (err.response?.data?.message) {
@@ -182,9 +182,9 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, on
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   disabled={loading}
                 >
-                  <option value="STUDENT">🎓 Étudiant</option>
-                  <option value="AGENT_RESTAURANT">🍽️ Agent Restaurant</option>
-                  <option value="ADMIN">👑 Administrateur</option>
+                  <option value="STUDENT">Étudiant</option>
+                  <option value="AGENT_RESTAURANT">Agent Restaurant</option>
+                  <option value="ADMIN">Administrateur</option>
                 </select>
               </div>
             )}
@@ -235,23 +235,23 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, on
                   }`}
                   disabled={loading || formData.status === 'APPROVED'}
                 >
-                  <option value="PENDING">⏳ En attente</option>
-                  <option value="APPROVED">✅ Approuvé</option>
-                  <option value="REJECTED">❌ Rejeté</option>
+                  <option value="PENDING">En attente</option>
+                  <option value="APPROVED">Approuvé</option>
+                  <option value="REJECTED">Rejeté</option>
                 </select>
                 {formData.status === 'APPROVED' && (
                   <p className="text-xs text-orange-500 mt-1">
-                    ⚠️ Statut verrouillé - Les étudiants approuvés ne peuvent plus changer de statut (mais peuvent être supprimés)
+                    Statut verrouillé - Les étudiants approuvés ne peuvent plus changer de statut (mais peuvent être supprimés)
                   </p>
                 )}
                 {formData.status === 'PENDING' && (
                   <p className="text-xs text-gray-500 mt-1">
-                    💡 Vous pouvez approuver ou rejeter les étudiants en attente
+                    Vous pouvez approuver ou rejeter les étudiants en attente
                   </p>
                 )}
                 {formData.status === 'REJECTED' && (
                   <p className="text-xs text-gray-500 mt-1">
-                    🔄 Vous pouvez approuver les étudiants rejetés
+                    Vous pouvez approuver les étudiants rejetés
                   </p>
                 )}
               </div>

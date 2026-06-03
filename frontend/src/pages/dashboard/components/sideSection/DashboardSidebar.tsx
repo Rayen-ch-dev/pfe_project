@@ -58,6 +58,12 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm-6-4V3m2 2h4" />
           </svg>
         );
+      case 'kitchen':
+        return (
+          <svg className={iconBase} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+        );
       case 'settings':
         return (
           <svg className={iconBase} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -109,13 +115,20 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
       roles: ['ADMIN'],
     },
     {
+      name: 'Planification Cuisine',
+      href: '/dashboard/kitchen',
+      icon: getIcon('kitchen'),
+      current: location.pathname === '/dashboard/kitchen',
+      roles: ['ADMIN', 'AGENT_RESTAURANT'],
+    },
+    {
       name: 'Rapports',
       href: '/dashboard/reports',
       icon: getIcon('reports'),
       current: location.pathname === '/dashboard/reports',
       roles: ['ADMIN'],
     },
-        {
+    {
       name: 'Paramètres',
       href: '/dashboard/settings',
       icon: getIcon('settings'),
@@ -124,7 +137,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
   ];
 
   // Filter items based on user role
-  const filteredItems = sidebarItems.filter(item => 
+  const filteredItems = sidebarItems.filter(item =>
     !item.roles || item.roles.includes(user?.role || '')
   );
 
@@ -147,34 +160,10 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
+        fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
         ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex flex-col h-full">
-          {/* Logo/Brand */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.788 0l7-3a1 1 0 000-1.838l-7 3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM8.03 2h7.94a1 1 0 01.89.89 11.115 11.115 0 01.25 3.762 1 1 0 01-.89.89A8.969 8.969 0 0015 14.12v-4.102l1.69-.723a1 1 0 00.556-1.716l-7-3z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-3">
-                <h1 className="text-lg font-bold text-gray-900">Portail</h1>
-                <p className="text-xs text-gray-500">Scolaire</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2">
@@ -186,13 +175,13 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
                   w-full group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
                   ${item.current
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg transform scale-105'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                   }
                 `}
               >
                 <div className={`
                   flex-shrink-0 p-1 rounded-md
-                  ${item.current ? 'bg-white bg-opacity-20' : 'text-gray-400 group-hover:text-gray-500'}
+                  ${item.current ? 'bg-white bg-opacity-20' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'}
                 `}>
                   {item.icon}
                 </div>
@@ -205,7 +194,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
           </nav>
 
           {/* User Info at Bottom */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -215,12 +204,12 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ open = true, onClos
                 </div>
               </div>
               <div className="ml-3 flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
-                  {user?.role === 'ADMIN' ? 'Administrateur' : 
-                   user?.role === 'AGENT_RESTAURANT' ? 'Agent Restaurant' : 
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {user?.role === 'ADMIN' ? 'Administrateur' :
+                   user?.role === 'AGENT_RESTAURANT' ? 'Agent Restaurant' :
                    user?.role === 'STUDENT' ? 'Étudiant' : 'Utilisateur'}
                 </p>
               </div>

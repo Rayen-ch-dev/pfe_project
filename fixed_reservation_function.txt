@@ -1,0 +1,49 @@
+const handleReserveMeal = async (mealType: 'LUNCH' | 'DINNER') => {
+    try {
+      console.log('=== RESERVATION DEBUG START ===');
+      console.log('User role:', user?.role);
+      console.log('User ID:', user?.id);
+      console.log('Token exists:', !!token);
+      console.log('Remaining tickets:', remainingTickets);
+      console.log('Meal type:', mealType);
+      
+      if (!token) {
+        console.log('No token - showing alert');
+        Alert.alert("Erreur", "Vous devez être connecté pour réserver");
+        return;
+      }
+      
+      if (remainingTickets <= 0) {
+        console.log('No tickets - showing alert');
+        Alert.alert("Erreur", "Vous n'avez pas de tickets. Veuillez acheter des tickets d'abord.");
+        return;
+      }
+      
+      console.log('All checks passed - making reservation...');
+      const tomorrowDate = new Date();
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      
+      const reservationDate = new Date(tomorrowDate);
+      if (mealType === 'LUNCH') {
+        reservationDate.setHours(12, 0, 0, 0);
+      } else {
+        reservationDate.setHours(19, 0, 0, 0);
+      }
+      
+      console.log('Making reservation for:', mealType, 'on date:', reservationDate);
+      const response = await createReservation(mealType, reservationDate, token);
+      console.log('Reservation response:', response.data);
+      
+      const isSuccess = response.data && response.data.message && response.data.message.includes("✅");
+      const message = isSuccess ? "Réservation créée avec succès!" : response.data?.message || "Erreur lors de la réservation";
+      const title = isSuccess ? "Succès" : "Erreur";
+      
+      Alert.alert(title, message);
+      if (isSuccess) {
+        loadUserTickets(); // Refresh ticket count
+      }
+    } catch (error: any) {
+      console.error("Reservation error:", error);
+      Alert.alert("Erreur", "Erreur lors de la réservation");
+    }
+  };

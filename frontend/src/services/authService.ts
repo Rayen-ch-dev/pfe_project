@@ -28,7 +28,7 @@ export interface AuthResponse {
 export const authService = {
   login: async (data: LoginData): Promise<AuthResponse> => {
     try {
-      console.log('🔐 Attempting login...');
+      console.log('Attempting login...');
       const response = await api.post<AuthResponse>('/api/auth/login', data);
       
       // Store token in localStorage
@@ -39,14 +39,14 @@ export const authService = {
       
       return response;
     } catch (error: any) {
-      console.error('❌ Login error:', error);
+      console.error('Login error:', error);
       throw error;
     }
   },
 
   register: async (data: RegisterData): Promise<AuthResponse> => {
     try {
-      console.log('📝 Attempting registration...');
+      console.log('Attempting registration...');
       const response = await api.post<AuthResponse>('/api/auth/register', data);
       
       // Store token in localStorage
@@ -57,24 +57,24 @@ export const authService = {
       
       return response;
     } catch (error: any) {
-      console.error('❌ Register error:', error);
+      console.error('Register error:', error);
       throw error;
     }
   },
 
   getUserProfile: async (): Promise<User> => {
     try {
-      console.log('👤 Fetching user profile...');
+      console.log('Fetching user profile...');
       const response = await api.get<User>('/api/users/profile');
       return response;
     } catch (error: any) {
-      console.error('❌ Profile fetch error:', error);
+      console.error('Profile fetch error:', error);
       throw error;
     }
   },
 
   logout: () => {
-    console.log('🚪 Logging out...');
+    console.log('Logging out...');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },

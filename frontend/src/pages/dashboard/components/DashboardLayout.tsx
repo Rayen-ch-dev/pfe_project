@@ -15,7 +15,7 @@ const DashboardLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       {/* Header */}
       <DashboardHeader 
         toggleSidebar={toggleSidebar} 
@@ -41,12 +41,12 @@ const DashboardLayout: React.FC = () => {
               className="fixed inset-0 z-40 lg:hidden"
               onClick={closeSidebar}
             >
-              <div className="absolute inset-0 bg-gray-600 opacity-75"></div>
+              <div className="absolute inset-0 bg-gray-600 opacity-75 dark:bg-gray-900 dark:opacity-90"></div>
             </div>
           )}
 
           {/* Page Content */}
-          <main className="min-h-screen">
+          <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
             <div className="py-6">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <Outlet />

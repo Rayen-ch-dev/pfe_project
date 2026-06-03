@@ -72,8 +72,6 @@ model Reservation {
 
   status    ReservationStatus @default(PENDING)
 
-  qrCode    String?
-
   usedAt    DateTime?
   validatedBy String?
 }
