@@ -9,39 +9,51 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // Get total users
-    const totalUsers = await prisma.user.count();
+    const [
+      totalUsers,
+      activeReservations,
+      allPayments,
+      monthlyPayments,
+    ] = await Promise.all([
 
-    // Get active reservations (confirmed)
-    const activeReservations = await prisma.reservation.count({
-      where: {
-        status: 'CONFIRMED',
-        date: {
-          gte: startOfMonth,
-          lte: endOfMonth
+      //  Count ALL users (not just approved)
+      prisma.user.count(),
+
+      //  Count ALL reservations regardless of date
+      prisma.reservation.count({
+        where: {
+          status: { in: ['CONFIRMED', 'PENDING'] }
         }
-      }
-    });
+      }),
 
-    // Get total tickets sold from payments
-    const payments = await prisma.payment.findMany({
-      where: {
-        createdAt: {
-          gte: startOfMonth,
-          lte: endOfMonth
-        }
-      }
-    });
+      prisma.payment.findMany({
+        where: { status: 'PAID' }
+      }),
 
-    const ticketsSold = payments.reduce((total, payment) => total + Math.round(payment.amount / 0.2), 0);
-    const monthlyRevenue = payments.reduce((total, payment) => total + payment.amount, 0);
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: 'PAID',
+          createdAt: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      }),
+
+    ]);
+
+    const ticketsSold = allPayments.reduce(
+      (total, payment) => total + Math.round(payment.amount / 0.2), 0
+    );
 
     res.json({
       totalUsers,
       activeReservations,
       ticketsSold,
-      monthlyRevenue
+      monthlyRevenue: monthlyPayments._sum.amount ?? 0,
     });
+
   } catch (error: any) {
     console.error('Error getting dashboard stats:', error);
     res.status(500).json({ message: 'Failed to get dashboard statistics' });

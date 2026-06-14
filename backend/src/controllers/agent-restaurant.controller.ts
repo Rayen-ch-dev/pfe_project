@@ -119,3 +119,77 @@ export const validateMeal = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// GET AGENT STATISTICS
+export const getAgentStatistics = async (req: AuthRequest, res: Response) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+    // Get all reservations for today
+    const reservations = await prisma.reservation.findMany({
+      where: {
+        meal: {
+          date: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+        status: {
+          in: ['CONFIRMED', 'USED'],
+        },
+      },
+      include: {
+        meal: true,
+        user: true,
+      },
+    });
+
+    const totalExpected = reservations.length;
+    const scanned = reservations.filter(r => r.status === 'USED').length;
+
+    // Breakdown by meal type
+    const lunchReservations = reservations.filter(r => r.meal?.type === 'LUNCH');
+    const dinnerReservations = reservations.filter(r => r.meal?.type === 'DINNER');
+
+    const lunchExpected = lunchReservations.length;
+    const lunchScanned = lunchReservations.filter(r => r.status === 'USED').length;
+    const dinnerExpected = dinnerReservations.length;
+    const dinnerScanned = dinnerReservations.filter(r => r.status === 'USED').length;
+
+    // Hourly distribution (only for scanned reservations)
+    const hourlyData = Array.from({ length: 12 }, (_, i) => {
+      const hour = i + 11; // Start from 11:00
+      const count = reservations.filter(r => {
+        if (r.status !== 'USED' || !r.usedAt) return false;
+        const usedHour = r.usedAt.getHours();
+        return usedHour === hour;
+      }).length;
+      return { hour: `${hour}h`, count };
+    });
+
+    // Recent scans (last 5)
+    const recentScans = reservations
+      .filter(r => r.status === 'USED' && r.usedAt)
+      .sort((a, b) => (b.usedAt?.getTime() || 0) - (a.usedAt?.getTime() || 0))
+      .slice(0, 5)
+      .map(r => ({
+        name: `${r.user.firstName} ${r.user.lastName}`,
+        mealType: r.meal?.type || 'UNKNOWN',
+        time: r.usedAt ? r.usedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+      }));
+
+    res.json({
+      totalExpected,
+      scanned,
+      lunch: { expected: lunchExpected, scanned: lunchScanned },
+      dinner: { expected: dinnerExpected, scanned: dinnerScanned },
+      hourly: hourlyData,
+      recentScans,
+    });
+  } catch (error: any) {
+    console.error('Error getting agent statistics:', error);
+    res.status(500).json({ message: 'Failed to get agent statistics' });
+  }
+};

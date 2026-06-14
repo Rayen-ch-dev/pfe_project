@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as adminController from "../controllers/admin.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { adminMiddleware } from "../middlewares/admin.middleware";
+import recipeRoutes from "./recipe.routes";
 
 const router = Router();
 
@@ -43,5 +44,8 @@ router.get("/user-growth", adminController.getUserGrowth);
 
 // Test endpoint
 router.get("/test-data", adminController.testChartData);
+
+// Recipe management
+router.use("/recipes", recipeRoutes);
 
 export default router;
