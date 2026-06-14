@@ -558,7 +558,7 @@ export default function Tickets() {
 
         <View className="px-6 pb-10">
           <Text className="text-gray-400 text-xs text-center">
-            © 2026 Portail Scolaire. Tous droits réservés.
+            © 2026 Portail de Restauration Universitaire. Tous droits réservés.
           </Text>
         </View>
       </ScrollView>

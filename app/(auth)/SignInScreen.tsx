@@ -74,7 +74,7 @@ export default function SignInScreen() {
           {/* Logo/Header Section */}
           <View className="items-center mb-12">
        
-            <Text className="text-3xl font-bold text-blue-800 mb-2">Portail Scolaire</Text>
+            <Text className="text-3xl font-bold text-blue-800 mb-2">Portail de Restauration Universitaire</Text>
             <Text className="text-gray-600 text-base">Connectez-vous pour continuer à apprendre</Text>
           </View>
 
@@ -84,7 +84,7 @@ export default function SignInScreen() {
             <View className="mb-5">
               <Text className="text-gray-700 font-semibold mb-2 text-sm">Adresse Email</Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
-                <Text className="text-gray-400 text-lg mr-3">📧</Text>
+                <Text className="text-gray-400 text-lg mr-3"></Text>
                 <TextInput
                   className="flex-1 py-4 text-gray-800 text-base"
                   placeholder="etudiant@ecole.com"
@@ -102,7 +102,7 @@ export default function SignInScreen() {
             <View className="mb-4">
               <Text className="text-gray-700 font-semibold mb-2 text-sm">Mot de passe</Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
-                <Text className="text-gray-400 text-lg mr-3">🔒</Text>
+                <Text className="text-gray-400 text-lg mr-3"></Text>
                 <TextInput
                   className="flex-1 py-4 text-gray-800 text-base"
                   placeholder="Entrez votre mot de passe"
@@ -144,7 +144,7 @@ export default function SignInScreen() {
             {/* Demo Credentials Card */}
             <View className="bg-blue-50 rounded-lg p-3 mt-2 border border-blue-100">
               <Text className="text-blue-800 text-xs text-center font-medium mb-1">
-                📝 Identifiants de démonstration
+                 Identifiants de démonstration
               </Text>
               <Text className="text-gray-600 text-xs text-center">
                 Email: student@school.com
@@ -166,7 +166,7 @@ export default function SignInScreen() {
           {/* Footer */}
           <View className="mt-8">
             <Text className="text-gray-400 text-xs text-center">
-              © 2026 Portail Scolaire. Tous droits réservés.
+              © 2026 Portail de Restauration Universitaire. Tous droits réservés.
             </Text>
           </View>
         </View>

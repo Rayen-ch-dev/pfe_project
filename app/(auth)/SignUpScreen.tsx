@@ -178,7 +178,6 @@ export default function SignUpScreen() {
               <View className="flex-1">
                 <Text className="text-gray-700 font-semibold mb-2 text-sm">Prénom</Text>
                 <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
-                  <Text className="text-gray-400 text-lg mr-3">👤</Text>
                   <TextInput
                     className="flex-1 py-4 text-gray-800 text-base"
                     placeholder="mohamed"
@@ -193,7 +192,6 @@ export default function SignUpScreen() {
               <View className="flex-1">
                 <Text className="text-gray-700 font-semibold mb-2 text-sm">Nom</Text>
                 <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
-                  <Text className="text-gray-400 text-lg mr-3">👤</Text>
                   <TextInput
                     className="flex-1 py-4 text-gray-800 text-base"
                     placeholder="Ben Amor"
@@ -210,7 +208,6 @@ export default function SignUpScreen() {
             <View className="mb-5">
               <Text className="text-gray-700 font-semibold mb-2 text-sm">Adresse Email</Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
-                <Text className="text-gray-400 text-lg mr-3">📧</Text>
                 <TextInput
                   className="flex-1 py-4 text-gray-800 text-base"
                   placeholder="etudiant@ecole.com"
@@ -229,7 +226,6 @@ export default function SignUpScreen() {
             <View className="mb-5">
               <Text className="text-gray-700 font-semibold mb-2 text-sm">Mot de passe</Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
-                <Text className="text-gray-400 text-lg mr-3">🔒</Text>
                 <TextInput
                   className="flex-1 py-4 text-gray-800 text-base"
                   placeholder="Au moins 6 caractères"
@@ -246,7 +242,6 @@ export default function SignUpScreen() {
             <View className="mb-6">
               <Text className="text-gray-700 font-semibold mb-2 text-sm">Confirmer le mot de passe</Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 px-4">
-                <Text className="text-gray-400 text-lg mr-3">🔒</Text>
                 <TextInput
                   className="flex-1 py-4 text-gray-800 text-base"
                   placeholder="Confirmez votre mot de passe"
@@ -277,7 +272,7 @@ export default function SignUpScreen() {
                       className="w-24 h-24 rounded-lg mb-2"
                       resizeMode="cover"
                     />
-                    <Text className="text-green-600 text-sm font-medium">Document téléchargé ✓</Text>
+                    <Text className="text-green-600 text-sm font-medium">Document téléchargé </Text>
                     <TouchableOpacity
                       onPress={() => setShowDocumentModal(true)}
                       className="mt-2"
@@ -287,7 +282,6 @@ export default function SignUpScreen() {
                   </View>
                 ) : (
                   <View className="items-center">
-                    <Text className="text-gray-400 text-4xl mb-2">📷</Text>
                     <Text className="text-gray-600 text-sm font-medium text-center">
                       Appuyez pour télécharger un document
                     </Text>
@@ -333,7 +327,7 @@ export default function SignUpScreen() {
           {/* Footer */}
           <View className="mt-8">
             <Text className="text-gray-400 text-xs text-center">
-              2026 Portail Scolaire. Tous droits réservés.
+              2026 Portail de Restauration Universitaire. Tous droits réservés.
             </Text>
           </View>
         </View>
@@ -369,7 +363,6 @@ export default function SignUpScreen() {
                 className="bg-green-600 rounded-xl p-4 flex-row items-center justify-center"
                 activeOpacity={0.8}
               >
-                <Text className="text-white text-2xl mr-3">🖼️</Text>
                 <Text className="text-white font-semibold text-base">
                   Choisir depuis la galerie
                 </Text>

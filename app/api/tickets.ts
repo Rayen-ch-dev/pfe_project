@@ -207,7 +207,7 @@ export const createReservation = async (
     if (mealType === 'CHECK' && options?.forMealType) {
       body.forMealType = options.forMealType;
     }
-    const response = await api.post('api/users/reservations', 
+    const response = await api.post('api/users/reservations',
       body,
       {
         headers: {
@@ -224,6 +224,30 @@ export const createReservation = async (
       response: error.response?.data,
       status: error.response?.status,
       url: `${API_URL}/api/users/reservations`
+    });
+    throw error;
+  }
+};
+
+export const getAgentStatistics = async (token: string) => {
+  try {
+    console.log('Getting agent statistics...');
+    const response = await api.get('api/agent-restaurant/statistics', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    console.log('Agent statistics response:', response.data);
+    return response;
+  } catch (error: any) {
+    console.error('Get agent statistics error:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.data,
+      status: error.response?.status,
+      url: `${API_URL}/api/agent-restaurant/statistics`
     });
     throw error;
   }

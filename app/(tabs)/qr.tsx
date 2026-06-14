@@ -138,9 +138,7 @@ export default function QR() {
 
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Your QR Code</Text>
-        <Text style={styles.subtitle}>User ID: {userId}</Text>
-        <Text style={styles.subtitle}>Secure QR: {secureQRValue.substring(0, 50)}...</Text>
+        <Text style={styles.title}>Votre Qr Code</Text>
         {secureQRValue ? (
           <QRCode value={secureQRValue} size={200} />
         ) : (
